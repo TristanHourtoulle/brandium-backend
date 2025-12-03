@@ -10,7 +10,7 @@ import {
   BelongsToGetAssociationMixin,
   HasManyGetAssociationsMixin,
 } from 'sequelize';
-import sequelize from '../config/database';
+import { sequelize } from '../config/database';
 
 import type { User } from './User';
 import type { Post } from './Post';

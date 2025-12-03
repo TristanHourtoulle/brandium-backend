@@ -9,7 +9,7 @@ import {
   Association,
   BelongsToGetAssociationMixin,
 } from 'sequelize';
-import sequelize from '../config/database';
+import { sequelize } from '../config/database';
 
 import type { User } from './User';
 import type { Profile } from './Profile';

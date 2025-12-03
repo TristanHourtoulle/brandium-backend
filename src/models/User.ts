@@ -11,7 +11,7 @@ import {
   HasManyCountAssociationsMixin,
 } from 'sequelize';
 import bcrypt from 'bcrypt';
-import sequelize from '../config/database';
+import { sequelize } from '../config/database';
 
 // Import types for associations (will be properly typed after all models are created)
 import type { Profile } from './Profile';

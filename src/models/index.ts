@@ -1,4 +1,4 @@
-import sequelize from '../config/database';
+import { sequelize } from '../config/database';
 import { User } from './User';
 import { Profile } from './Profile';
 import { Project } from './Project';
