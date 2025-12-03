@@ -6,14 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Brandium is a backend API for personalized social media post generation using AI. It manages user authentication, profiles (personas), projects, platforms (LinkedIn, X, TikTok), and generates content via OpenAI.
 
-**Tech Stack:** Node.js + Express 5.x + Sequelize ORM + PostgreSQL + JWT auth + OpenAI API
+**Tech Stack:** Node.js + Express 5.x + TypeScript + Sequelize ORM + PostgreSQL + JWT auth + OpenAI API
 
 ## Common Commands
 
 ```bash
 # Development
-npm run dev              # Start with hot reload (nodemon)
-npm start                # Production mode
+npm run dev              # Start with hot reload (ts-node + nodemon)
+npm run build            # Compile TypeScript to JavaScript
+npm start                # Production mode (runs compiled JS)
+
+# Type Checking
+npm run typecheck        # Check types without compiling
 
 # Testing
 npm test                 # Run tests in watch mode
@@ -31,7 +35,7 @@ npm run db:migrate:undo  # Undo last migration
 npm run db:seed          # Run all seeders
 npm run db:reset         # Undo all + migrate + seed
 
-# Create new migration/seeder
+# Create new migration/seeder (these stay in JavaScript)
 npx sequelize-cli migration:generate --name <name>
 npx sequelize-cli seed:generate --name <name>
 ```
@@ -39,23 +43,25 @@ npx sequelize-cli seed:generate --name <name>
 ## Architecture
 
 ```
-src/
-├── app.js              # Express server, middleware setup, route mounting
+src/                        # TypeScript source files
+├── app.ts                  # Express server, middleware setup, route mounting
 ├── config/
-│   ├── database.js     # Sequelize config (dev/test/prod environments)
-│   └── constants.js    # App constants
-├── controllers/        # Route handlers (Auth, Profile, Project, Platform, Post, Generate)
-├── middleware/         # authMiddleware (JWT verification), validation, error handling
-├── models/             # Sequelize models (User, Profile, Project, Platform, Post)
-├── routes/             # API route definitions
-├── services/           # Business logic (LLMService for OpenAI)
-└── utils/              # Helpers (promptBuilder for AI context construction)
+│   ├── database.ts         # Sequelize config (dev/test/prod environments)
+│   └── constants.ts        # App constants
+├── controllers/            # Route handlers (Auth, Profile, Project, Platform, Post, Generate)
+├── middleware/             # authMiddleware (JWT verification), validation, error handling
+├── models/                 # Sequelize models with TypeScript interfaces
+├── routes/                 # API route definitions
+├── services/               # Business logic (LLMService for OpenAI)
+├── utils/                  # Helpers (promptBuilder for AI context construction)
+└── types/                  # Custom TypeScript type definitions
 
-migrations/             # Sequelize migrations
-seeders/                # Database seeders
+dist/                       # Compiled JavaScript (git ignored)
+migrations/                 # Sequelize migrations (JavaScript - CLI requirement)
+seeders/                    # Database seeders (JavaScript - CLI requirement)
 tests/
-├── unit/               # Unit tests
-└── integration/        # API tests
+├── unit/                   # Unit tests
+└── integration/            # API tests
 ```
 
 ## Data Models
@@ -86,13 +92,24 @@ Generation endpoint `POST /api/generate` takes profileId, projectId, platformId,
 - **Separation of Concerns**: Controllers handle HTTP, services handle business logic, models handle data
 - **Meaningful Names**: Use descriptive variable/function names that explain intent
 - **Early Returns**: Prefer early returns over deeply nested conditionals
+- **Type Safety**: Leverage TypeScript's type system, avoid `any` when possible
 
 ## Code Style
 
-- CommonJS modules (`require`/`module.exports`)
+- **TypeScript**: ES modules with `import`/`export` for `src/` files
+- **JavaScript**: CommonJS (`require`/`module.exports`) for migrations/seeders (Sequelize CLI requirement)
 - Single quotes, semicolons, 2-space indent
 - Unused function parameters prefixed with `_` (e.g., `_next`)
-- ESLint configured in `eslint.config.js`
+- ESLint configured in `eslint.config.js` with TypeScript support
+- Strict TypeScript mode enabled (`strict: true` in tsconfig.json)
+
+## TypeScript Guidelines
+
+- Define interfaces for all data structures
+- Use explicit return types for public functions
+- Prefer `interface` over `type` for object shapes
+- Use `unknown` instead of `any` when type is truly unknown
+- Leverage utility types (Partial, Pick, Omit, etc.)
 
 ## Environment Variables
 
@@ -105,7 +122,9 @@ Required in `.env` (copy from `.env.example`):
 ## Sequelize CLI Configuration
 
 Paths configured in `.sequelizerc`:
-- Config: `src/config/database.js`
+- Config: `src/config/database.js` (compiled from TypeScript or kept as JS for CLI compatibility)
 - Models: `src/models/`
-- Migrations: `migrations/`
-- Seeders: `seeders/`
+- Migrations: `migrations/` (JavaScript files)
+- Seeders: `seeders/` (JavaScript files)
+
+**Note:** Sequelize CLI doesn't support TypeScript natively. Migrations and seeders remain in JavaScript, while models are written in TypeScript.
