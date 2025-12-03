@@ -71,8 +71,9 @@ pnpm-lock.yaml
 # =====================================
 # AI or Documentation files (only README.md should be kept and docs from docs/ folder)
 # =====================================
-*.md
 !README.md
 !CLAUDE.md
-!docs/
+.claude
+PLAN_DEVELOPPEMENT.md
+BACKEND.md
 

@@ -116,6 +116,8 @@ POST /api/auth/login       # Login
 GET  /api/auth/me          # Get current user (protected)
 ```
 
+📖 **[Complete Authentication Documentation →](./docs/auth/README.md)**
+
 ### Profiles (protected)
 
 ```
