@@ -75,18 +75,20 @@ const authMiddleware = async (
     req.user = user;
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid token',
-      });
-      return;
-    }
-
+    // TokenExpiredError must be checked BEFORE JsonWebTokenError
+    // because TokenExpiredError extends JsonWebTokenError
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Token expired',
+      });
+      return;
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid token',
       });
       return;
     }

@@ -26,21 +26,22 @@ const errorHandler = (
 ): void => {
   console.error('Error:', err.message);
 
-  // Sequelize Validation Error
-  if (err instanceof SequelizeValidationError) {
-    res.status(400).json({
-      error: 'Validation Error',
-      message: err.errors.map((e) => e.message),
-    });
-    return;
-  }
-
-  // Sequelize Unique Constraint Error
+  // UniqueConstraintError must be checked BEFORE ValidationError
+  // because UniqueConstraintError extends ValidationError
   if (err instanceof UniqueConstraintError) {
     res.status(409).json({
       error: 'Conflict',
       message: 'Resource already exists',
       details: err.errors.map((e) => e.message),
+    });
+    return;
+  }
+
+  // Sequelize Validation Error
+  if (err instanceof SequelizeValidationError) {
+    res.status(400).json({
+      error: 'Validation Error',
+      message: err.errors.map((e) => e.message),
     });
     return;
   }
