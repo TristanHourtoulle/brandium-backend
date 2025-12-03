@@ -73,5 +73,6 @@ pnpm-lock.yaml
 # =====================================
 *.md
 !README.md
+!CLAUDE.md
 !docs/
 
