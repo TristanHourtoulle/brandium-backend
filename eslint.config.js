@@ -1,36 +1,27 @@
-module.exports = [
+const eslint = require('@eslint/js');
+const tseslint = require('typescript-eslint');
+
+module.exports = tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    files: ['**/*.js'],
+    files: ['src/**/*.ts'],
     languageOptions: {
       ecmaVersion: 'latest',
-      sourceType: 'commonjs',
-      globals: {
-        // Node.js globals
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        process: 'readonly',
-        console: 'readonly',
-        Buffer: 'readonly',
-        // Jest globals
-        describe: 'readonly',
-        test: 'readonly',
-        expect: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        jest: 'readonly',
+      sourceType: 'module',
+      parserOptions: {
+        project: './tsconfig.json',
       },
     },
     rules: {
-      // Erreurs potentielles
-      'no-console': 'warn',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'no-undef': 'error',
+      // TypeScript specific
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
 
-      // Bonnes pratiques
+      // General rules
+      'no-console': 'warn',
       eqeqeq: ['error', 'always'],
       'no-var': 'error',
       'prefer-const': 'error',
@@ -38,11 +29,38 @@ module.exports = [
       // Style
       semi: ['error', 'always'],
       quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2, { SwitchCase: 1 }],
       'comma-dangle': ['error', 'always-multiline'],
     },
   },
   {
-    ignores: ['node_modules/**', 'coverage/**', 'migrations/**', 'seeders/**'],
+    // Config for JavaScript files (migrations, seeders, config)
+    files: ['**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
+      globals: {
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'warn',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-undef': 'error',
+      eqeqeq: ['error', 'always'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      semi: ['error', 'always'],
+      quotes: ['error', 'single', { avoidEscape: true }],
+      'comma-dangle': ['error', 'always-multiline'],
+    },
   },
-];
+  {
+    ignores: ['node_modules/**', 'coverage/**', 'dist/**'],
+  }
+);

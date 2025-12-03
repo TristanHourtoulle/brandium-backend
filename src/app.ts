@@ -1,7 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,7 +15,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
-  })
+  }),
 );
 
 // =====================================
@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // =====================================
 // Health check route (public)
 // =====================================
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
 // =====================================
 // Root route
 // =====================================
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
     name: 'Brandium Backend API',
     version: '1.0.0',
@@ -53,14 +53,18 @@ app.get('/', (req, res) => {
 // =====================================
 // 404 handler
 // =====================================
-app.use((req, res) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
 // =====================================
 // Error handling middleware
 // =====================================
-app.use((err, req, res, _next) => {
+interface HttpError extends Error {
+  status?: number;
+}
+
+app.use((err: HttpError, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
@@ -71,7 +75,7 @@ app.use((err, req, res, _next) => {
 // =====================================
 // Server startup
 // =====================================
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
   try {
     // Note: Database connection will be added in Phase 1
     console.log('Database connection will be configured in Phase 1');
@@ -92,4 +96,4 @@ if (process.env.NODE_ENV !== 'test') {
   startServer();
 }
 
-module.exports = app;
+export default app;
