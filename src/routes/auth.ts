@@ -1,5 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { register, login, getMe } from '../controllers/AuthController';
 import { authValidators } from '../middleware/validators';
+import authMiddleware from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -7,27 +9,18 @@ const router = Router();
  * POST /api/auth/register
  * Register a new user
  */
-router.post('/register', authValidators.register, (_req: Request, res: Response) => {
-  // TODO: Implement in Phase 3
-  res.status(501).json({ message: 'Not implemented - Coming in Phase 3' });
-});
+router.post('/register', authValidators.register, register);
 
 /**
  * POST /api/auth/login
  * Login user and return JWT
  */
-router.post('/login', authValidators.login, (_req: Request, res: Response) => {
-  // TODO: Implement in Phase 3
-  res.status(501).json({ message: 'Not implemented - Coming in Phase 3' });
-});
+router.post('/login', authValidators.login, login);
 
 /**
  * GET /api/auth/me
- * Get current authenticated user
+ * Get current authenticated user (protected route)
  */
-router.get('/me', (_req: Request, res: Response) => {
-  // TODO: Implement in Phase 3 (requires authMiddleware)
-  res.status(501).json({ message: 'Not implemented - Coming in Phase 3' });
-});
+router.get('/me', authMiddleware, getMe);
 
 export default router;

@@ -74,7 +74,8 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
    */
   toJSON(): Omit<InferAttributes<User>, 'passwordHash'> {
     const values = { ...this.get() };
-    const { passwordHash: _, ...safeValues } = values;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _password, ...safeValues } = values;
     return safeValues;
   }
 }
