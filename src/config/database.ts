@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { Sequelize, Options } from 'sequelize';
 
 export type Environment = 'development' | 'test' | 'production';
