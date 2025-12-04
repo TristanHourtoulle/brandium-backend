@@ -100,13 +100,13 @@ function buildTaskSection(goal: string | null | undefined, rawIdea: string): str
 
   task += `## Raw Idea to Transform\n${rawIdea.trim()}\n\n`;
 
-  task += `## Instructions\n`;
-  task += `1. Transform the raw idea into an engaging social media post.\n`;
-  task += `2. Apply the profile's tone and style if provided.\n`;
-  task += `3. Consider the project's audience and key messages if provided.\n`;
-  task += `4. Follow the platform's guidelines and character limits if provided.\n`;
-  task += `5. Make the post authentic, engaging, and actionable.\n`;
-  task += `6. Output ONLY the final post text, nothing else.\n`;
+  task += '## Instructions\n';
+  task += '1. Transform the raw idea into an engaging social media post.\n';
+  task += '2. Apply the profile\'s tone and style if provided.\n';
+  task += '3. Consider the project\'s audience and key messages if provided.\n';
+  task += '4. Follow the platform\'s guidelines and character limits if provided.\n';
+  task += '5. Make the post authentic, engaging, and actionable.\n';
+  task += '6. Output ONLY the final post text, nothing else.\n';
 
   return task;
 }
