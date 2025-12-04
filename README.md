@@ -128,6 +128,8 @@ PUT    /api/profiles/:id   # Update profile
 DELETE /api/profiles/:id   # Delete profile
 ```
 
+📖 **[Complete Profiles Documentation →](./docs/profiles/README.md)**
+
 ### Projects (protected)
 
 ```
@@ -138,6 +140,8 @@ PUT    /api/projects/:id   # Update project
 DELETE /api/projects/:id   # Delete project
 ```
 
+📖 **[Complete Projects Documentation →](./docs/projects/README.md)**
+
 ### Platforms (protected)
 
 ```
@@ -147,6 +151,8 @@ POST   /api/platforms       # Create platform
 PUT    /api/platforms/:id   # Update platform
 DELETE /api/platforms/:id   # Delete platform
 ```
+
+📖 **[Complete Platforms Documentation →](./docs/platforms/README.md)**
 
 ### Generation (protected)
 
