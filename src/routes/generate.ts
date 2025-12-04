@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import authMiddleware from '../middleware/authMiddleware';
 import { generateValidators } from '../middleware/validators';
+import * as GenerateController from '../controllers/GenerateController';
 
 const router = Router();
 
@@ -21,10 +22,18 @@ router.use(authMiddleware);
  * Response:
  * - generatedText: The AI-generated post content
  * - postId: The ID of the saved post
+ * - usage: Token usage statistics
  */
-router.post('/', generateValidators.generate, (_req: Request, res: Response) => {
-  // TODO: Implement in Phase 5
-  res.status(501).json({ message: 'Not implemented - Coming in Phase 5' });
-});
+router.post('/', generateValidators.generate, GenerateController.generate);
+
+/**
+ * GET /api/generate/status
+ * Get rate limit status for the generation service
+ *
+ * Response:
+ * - rateLimit: { requestsRemaining, tokensRemaining, windowResetIn }
+ * - service: operational status
+ */
+router.get('/status', GenerateController.getStatus);
 
 export default router;
