@@ -24,13 +24,15 @@ Brandium is a tool that helps you generate personalized social media posts using
 | Category | Technology |
 |----------|------------|
 | Runtime | Node.js 20+ |
+| Language | TypeScript (strict mode) |
 | Framework | Express 5.x |
 | ORM | Sequelize 6.x |
 | Database | PostgreSQL 14+ |
 | Auth | JWT + bcrypt |
-| AI | OpenAI API |
+| AI | OpenAI API (GPT-4.1-mini) |
 | Validation | express-validator |
 | Security | helmet, cors |
+| Testing | Jest + Supertest |
 
 ## Prerequisites
 
@@ -92,9 +94,12 @@ Server runs on `http://localhost:5000`
 | Script | Description |
 |--------|-------------|
 | `npm run dev` | Start with hot reload (nodemon) |
+| `npm run build` | Compile TypeScript to JavaScript |
 | `npm start` | Start in production mode |
-| `npm test` | Run tests in watch mode |
+| `npm test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
+| `npm run typecheck` | Check TypeScript types without compiling |
 | `npm run lint` | Check code with ESLint |
 | `npm run lint:fix` | Fix ESLint errors |
 | `npm run format` | Format code with Prettier |
@@ -162,18 +167,21 @@ DELETE /api/platforms/:id   # Delete platform
 
 ```
 POST /api/generate         # Generate post via OpenAI
+GET  /api/generate/status  # Check rate limit status
 ```
 
-**Request body:**
+**Request body for POST /api/generate:**
 ```json
 {
-  "profileId": "uuid",
-  "projectId": "uuid",
-  "platformId": "uuid",
-  "goal": "Announce new feature",
-  "rawIdea": "Just launched adaptive quizzes in Edukai!"
+  "profileId": "uuid",      // optional
+  "projectId": "uuid",      // optional
+  "platformId": "uuid",     // optional
+  "goal": "Announce new feature",  // optional
+  "rawIdea": "Just launched adaptive quizzes in Edukai!"  // required
 }
 ```
+
+📖 **[Complete Generation Documentation →](./docs/generate/README.md)**
 
 ### Posts (protected)
 
@@ -182,6 +190,8 @@ GET    /api/posts          # List all posts (paginated)
 GET    /api/posts/:id      # Get post by ID
 DELETE /api/posts/:id      # Delete post
 ```
+
+📖 **[Complete Posts Documentation →](./docs/posts/README.md)**
 
 ## Data Models
 
@@ -231,27 +241,29 @@ DELETE /api/posts/:id      # Delete post
 ```
 brandium-backend/
 ├── src/
-│   ├── app.js              # Express server setup
+│   ├── app.ts              # Express server setup
 │   ├── config/
-│   │   ├── database.js     # Sequelize configuration
-│   │   └── constants.js    # App constants
+│   │   ├── database.ts     # Sequelize configuration
+│   │   └── constants.ts    # App constants
 │   ├── controllers/        # Route handlers
 │   ├── middleware/         # Auth, validation, errors
 │   ├── models/             # Sequelize models
 │   ├── routes/             # API routes
 │   ├── services/           # Business logic (LLM, etc.)
+│   ├── types/              # TypeScript type definitions
 │   └── utils/              # Helper functions
 ├── tests/
 │   ├── unit/               # Unit tests
 │   └── integration/        # API tests
-├── migrations/             # Database migrations
-├── seeders/                # Database seeders
+├── migrations/             # Database migrations (JavaScript)
+├── seeders/                # Database seeders (JavaScript)
 ├── scripts/
 │   └── setup-db.sh         # Database setup script
 ├── .env.example            # Environment template
 ├── .sequelizerc            # Sequelize CLI config
 ├── jest.config.js          # Jest configuration
 ├── eslint.config.js        # ESLint configuration
+├── tsconfig.json           # TypeScript configuration
 └── package.json
 ```
 
@@ -270,6 +282,8 @@ brandium-backend/
 | `JWT_EXPIRES_IN` | JWT expiration | `7d` |
 | `OPENAI_API_KEY` | OpenAI API key | - |
 | `OPENAI_MODEL` | OpenAI model | `gpt-4.1-mini` |
+| `OPENAI_MAX_REQUESTS_PER_MINUTE` | Rate limit for requests | `20` |
+| `OPENAI_MAX_TOKENS_PER_MINUTE` | Rate limit for tokens | `40000` |
 | `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:3000` |
 
 ## Development
