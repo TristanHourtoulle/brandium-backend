@@ -113,8 +113,8 @@ const startServer = async (): Promise<void> => {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`Health check: http://localhost:${PORT}/health`);
     });
