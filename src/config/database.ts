@@ -76,12 +76,34 @@ const env: Environment = (process.env.NODE_ENV as Environment) || 'development';
 const currentConfig = config[env];
 
 // Create Sequelize instance
-const sequelize = new Sequelize(
-  currentConfig.database,
-  currentConfig.username,
-  currentConfig.password,
-  currentConfig as Options,
-);
+// Support DATABASE_URL (Railway, Heroku, etc.) or individual DB_* variables
+let sequelize: Sequelize;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL if provided (Railway, Heroku, etc.)
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    logging: env === 'development' ? console.log : false,
+    define: {
+      timestamps: true,
+      underscored: false,
+    },
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
+  });
+} else {
+  // Fall back to individual config variables
+  sequelize = new Sequelize(
+    currentConfig.database,
+    currentConfig.username,
+    currentConfig.password,
+    currentConfig as Options,
+  );
+}
 
 export { sequelize, config, currentConfig };
 export default sequelize;
