@@ -29,10 +29,19 @@ validateEnv();
 // =====================================
 app.use(helmet());
 
+// CORS configuration - handle trailing slash and multiple origins
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+// Remove trailing slash if present
+const normalizedOrigin = corsOrigin.endsWith('/')
+  ? corsOrigin.slice(0, -1)
+  : corsOrigin;
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: normalizedOrigin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
 
