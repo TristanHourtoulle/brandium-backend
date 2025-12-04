@@ -1,5 +1,9 @@
 # Brandium Backend API
 
+[![CI](https://github.com/TristanHourtoulle/brandium-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/TristanHourtoulle/brandium-backend/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/TristanHourtoulle/brandium-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/TristanHourtoulle/brandium-backend)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Backend API for personalized post generation for personal branding.
 
 ## Overview

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { param, validationResult } from 'express-validator';
+import { param } from 'express-validator';
 
 /**
  * UUID validation regex pattern (v4)

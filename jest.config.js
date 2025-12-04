@@ -6,6 +6,7 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary', 'json'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/app.ts',
