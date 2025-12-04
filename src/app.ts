@@ -6,8 +6,19 @@ import routes from './routes';
 import errorHandler from './middleware/errorHandler';
 import { sequelize } from './models';
 
+// Catch unhandled errors that could cause silent crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+console.log(`Starting app with PORT=${PORT}`);
 
 // =====================================
 // Validate required environment variables
