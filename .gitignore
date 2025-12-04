@@ -61,9 +61,8 @@ temp/
 *.sqlite3
 
 # =====================================
-# Lock files (keep only one)
+# Lock files (keep package-lock.json for CI)
 # =====================================
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
