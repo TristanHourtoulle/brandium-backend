@@ -107,21 +107,29 @@ app.use(errorHandler);
 // =====================================
 // Server startup
 // =====================================
-const startServer = async (): Promise<void> => {
-  try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
+const startServer = (): void => {
+  // Start listening IMMEDIATELY - Railway needs this
+  const server = app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
 
-    app.listen(Number(PORT), '0.0.0.0', () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
-    });
-  } catch (error) {
-    console.error('Unable to start server:', error);
+    // Test database connection after server is listening
+    sequelize
+      .authenticate()
+      .then(() => {
+        console.log('Database connection established successfully.');
+      })
+      .catch((error) => {
+        console.error('Unable to connect to database:', error);
+        // Don't exit - let health checks work, DB might recover
+      });
+  });
+
+  server.on('error', (error) => {
+    console.error('Server error:', error);
     process.exit(1);
-  }
+  });
 };
 
 // Only start server if not in test mode
