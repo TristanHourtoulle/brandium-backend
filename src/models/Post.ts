@@ -8,6 +8,9 @@ import {
   NonAttribute,
   Association,
   BelongsToGetAssociationMixin,
+  HasManyGetAssociationsMixin,
+  HasManyCreateAssociationMixin,
+  HasManyCountAssociationsMixin,
 } from 'sequelize';
 import { sequelize } from '../config/database';
 
@@ -15,6 +18,7 @@ import type { User } from './User';
 import type { Profile } from './Profile';
 import type { Project } from './Project';
 import type { Platform } from './Platform';
+import type { PostVersion } from './PostVersion';
 
 class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   // Primary key
@@ -25,11 +29,13 @@ class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   declare profileId: CreationOptional<ForeignKey<Profile['id']> | null>;
   declare projectId: CreationOptional<ForeignKey<Project['id']> | null>;
   declare platformId: CreationOptional<ForeignKey<Platform['id']> | null>;
+  declare currentVersionId: CreationOptional<ForeignKey<PostVersion['id']> | null>;
 
   // Attributes
   declare goal: CreationOptional<string | null>;
   declare rawIdea: string;
   declare generatedText: string;
+  declare totalVersions: CreationOptional<number>;
 
   // Timestamps
   declare readonly createdAt: CreationOptional<Date>;
@@ -40,12 +46,18 @@ class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   declare profile?: NonAttribute<Profile | null>;
   declare project?: NonAttribute<Project | null>;
   declare platform?: NonAttribute<Platform | null>;
+  declare versions?: NonAttribute<PostVersion[]>;
+  declare currentVersion?: NonAttribute<PostVersion | null>;
 
   // Association methods
   declare getUser: BelongsToGetAssociationMixin<User>;
   declare getProfile: BelongsToGetAssociationMixin<Profile>;
   declare getProject: BelongsToGetAssociationMixin<Project>;
   declare getPlatform: BelongsToGetAssociationMixin<Platform>;
+  declare getVersions: HasManyGetAssociationsMixin<PostVersion>;
+  declare createVersion: HasManyCreateAssociationMixin<PostVersion>;
+  declare countVersions: HasManyCountAssociationsMixin;
+  declare getCurrentVersion: BelongsToGetAssociationMixin<PostVersion>;
 
   // Static associations object
   declare static associations: {
@@ -53,6 +65,8 @@ class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
     profile: Association<Post, Profile>;
     project: Association<Post, Project>;
     platform: Association<Post, Platform>;
+    versions: Association<Post, PostVersion>;
+    currentVersion: Association<Post, PostVersion>;
   };
 }
 
@@ -115,6 +129,20 @@ Post.init(
     generatedText: {
       type: DataTypes.TEXT,
       allowNull: false,
+    },
+    currentVersionId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'post_versions',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+    },
+    totalVersions: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

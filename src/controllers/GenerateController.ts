@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { Profile, Project, Platform, Post } from '../models';
+import { sequelize } from '../config/database';
 import { findUserResource } from '../utils/controllerHelpers';
 import { buildPrompt, validatePromptContext } from '../utils/promptBuilder';
 import { llmService, RateLimitError, LLMServiceError } from '../services/LLMService';
+import { postVersionService } from '../services/PostVersionService';
 
 /**
  * POST /api/generate
@@ -71,31 +73,55 @@ export const generate = async (
     // Generate content using LLM
     const result = await llmService.generate({ prompt });
 
-    // Save the generated post to database
-    const post = await Post.create({
-      userId,
-      profileId: profile?.id || null,
-      projectId: project?.id || null,
-      platformId: platform?.id || null,
-      goal: goal || null,
-      rawIdea,
-      generatedText: result.text,
-    });
+    // Use transaction to ensure atomicity
+    const transaction = await sequelize.transaction();
 
-    // Return success response
-    res.status(201).json({
-      message: 'Post generated successfully',
-      data: {
+    try {
+      // Save the generated post to database
+      const post = await Post.create(
+        {
+          userId,
+          profileId: profile?.id || null,
+          projectId: project?.id || null,
+          platformId: platform?.id || null,
+          goal: goal || null,
+          rawIdea,
+          generatedText: result.text,
+          totalVersions: 1,
+        },
+        { transaction },
+      );
+
+      // Create initial version
+      const version = await postVersionService.createInitialVersion({
         postId: post.id,
         generatedText: result.text,
         usage: result.usage,
-        context: {
-          profile: profile ? { id: profile.id, name: profile.name } : null,
-          project: project ? { id: project.id, name: project.name } : null,
-          platform: platform ? { id: platform.id, name: platform.name } : null,
+        transaction,
+      });
+
+      await transaction.commit();
+
+      // Return success response
+      res.status(201).json({
+        message: 'Post generated successfully',
+        data: {
+          postId: post.id,
+          versionId: version.id,
+          versionNumber: 1,
+          generatedText: result.text,
+          usage: result.usage,
+          context: {
+            profile: profile ? { id: profile.id, name: profile.name } : null,
+            project: project ? { id: project.id, name: project.name } : null,
+            platform: platform ? { id: platform.id, name: platform.name } : null,
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   } catch (error) {
     // Handle rate limit errors
     if (error instanceof RateLimitError) {

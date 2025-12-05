@@ -14,6 +14,14 @@ export interface PromptContext {
 }
 
 /**
+ * Context for building an iteration prompt
+ */
+export interface IterationPromptContext extends PromptContext {
+  previousText: string;
+  iterationPrompt: string;
+}
+
+/**
  * Build a section for the prompt with a title and content
  */
 function buildSection(title: string, content: string | null | undefined): string {
@@ -159,4 +167,90 @@ export function validatePromptContext(context: PromptContext): { valid: boolean;
   return { valid: true };
 }
 
-export default { buildPrompt, estimateTokenCount, validatePromptContext };
+/**
+ * Build the iteration task section
+ */
+function buildIterationTaskSection(previousText: string, iterationPrompt: string): string {
+  let task = '# PREVIOUS VERSION\n\n';
+  task += '```\n';
+  task += previousText.trim();
+  task += '\n```\n\n';
+
+  task += '# MODIFICATION REQUEST\n\n';
+  task += iterationPrompt.trim();
+  task += '\n\n';
+
+  task += '# YOUR TASK\n\n';
+  task += 'Modify the previous version according to the modification request while:\n';
+  task += '1. Maintaining the original context and constraints.\n';
+  task += '2. Preserving what works well in the previous version.\n';
+  task += '3. Making only the requested changes.\n';
+  task += '4. Keeping the same tone and style unless specifically asked to change it.\n';
+  task += '5. Respecting platform character limits if specified.\n';
+  task += '6. Output ONLY the final modified post text, nothing else.\n';
+
+  return task;
+}
+
+/**
+ * Build a prompt for iterating on an existing post
+ */
+export function buildIterationPrompt(context: IterationPromptContext): string {
+  const sections: string[] = [];
+
+  // Add profile context if available
+  const profileContext = buildProfileContext(context.profile);
+  if (profileContext) {
+    sections.push(profileContext);
+  }
+
+  // Add project context if available
+  const projectContext = buildProjectContext(context.project);
+  if (projectContext) {
+    sections.push(projectContext);
+  }
+
+  // Add platform context if available
+  const platformContext = buildPlatformContext(context.platform);
+  if (platformContext) {
+    sections.push(platformContext);
+  }
+
+  // Add original task context for reference
+  if (context.goal || context.rawIdea) {
+    let originalContext = '# ORIGINAL REQUEST\n\n';
+    if (context.goal) {
+      originalContext += `**Goal:** ${context.goal.trim()}\n\n`;
+    }
+    originalContext += `**Raw Idea:** ${context.rawIdea.trim()}\n`;
+    sections.push(originalContext);
+  }
+
+  // Add iteration task section
+  sections.push(buildIterationTaskSection(context.previousText, context.iterationPrompt));
+
+  return sections.join('\n---\n\n');
+}
+
+/**
+ * Validate iteration prompt context
+ */
+export function validateIterationContext(
+  context: Partial<IterationPromptContext>,
+): { valid: boolean; error?: string } {
+  if (!context.iterationPrompt || context.iterationPrompt.trim() === '') {
+    return { valid: false, error: 'iterationPrompt is required and cannot be empty' };
+  }
+  if (!context.previousText || context.previousText.trim() === '') {
+    return { valid: false, error: 'previousText is required for iteration' };
+  }
+  return { valid: true };
+}
+
+export default {
+  buildPrompt,
+  buildIterationPrompt,
+  estimateTokenCount,
+  validatePromptContext,
+  validateIterationContext,
+};

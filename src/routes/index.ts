@@ -4,6 +4,7 @@ import profileRoutes from './profiles';
 import projectRoutes from './projects';
 import platformRoutes from './platforms';
 import postRoutes from './posts';
+import postIterationRoutes from './postIterations';
 import generateRoutes from './generate';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use('/profiles', profileRoutes);
 router.use('/projects', projectRoutes);
 router.use('/platforms', platformRoutes);
 router.use('/posts', postRoutes);
+router.use('/posts', postIterationRoutes); // Post iteration routes (versions, iterate)
 router.use('/generate', generateRoutes);
 
 export default router;
