@@ -279,9 +279,13 @@ Authorization: Bearer <token>
 | `platformId` | UUID | Platform used for style (FK, nullable) |
 | `goal` | text | Post objective (nullable) |
 | `rawIdea` | text | Original input idea |
-| `generatedText` | text | AI-generated content |
+| `generatedText` | text | AI-generated content (from selected version) |
+| `currentVersionId` | UUID | Currently selected version (FK, nullable) |
+| `totalVersions` | integer | Total number of versions |
 | `createdAt` | timestamp | Creation date |
 | `updatedAt` | timestamp | Last update date |
+
+> **Note:** The `generatedText` field reflects the content of the currently selected version. Use the [Iterations API](../iterations/README.md) to manage versions.
 
 ### Related Entities in List View
 
@@ -310,6 +314,26 @@ Posts are always ordered by `createdAt` in descending order (newest first).
 ## Creating Posts
 
 Posts are not created directly via this API. They are created automatically when using the `/api/generate` endpoint. See the [Generate API Documentation](../generate/README.md) for more details.
+
+---
+
+## Iterating on Posts
+
+After generating a post, you can create multiple versions by iterating on it. Each iteration uses AI to modify the content based on your instructions while preserving the original context.
+
+**Key Features:**
+
+- Create unlimited versions of any post
+- Switch between versions at any time
+- Track the iteration prompt used for each version
+- Monitor token usage per version
+
+See the [Iterations API Documentation](../iterations/README.md) for complete details on:
+
+- `POST /api/posts/:postId/iterate` - Create a new version
+- `GET /api/posts/:postId/versions` - List all versions
+- `GET /api/posts/:postId/versions/:versionId` - Get specific version
+- `PATCH /api/posts/:postId/versions/:versionId/select` - Select a version
 
 ---
 
@@ -354,5 +378,5 @@ npm run test:coverage
 
 ---
 
-**Last Updated:** 2025-12-04
-**Version:** 1.0.0
+**Last Updated:** 2025-12-05
+**Version:** 1.1.0

@@ -18,6 +18,7 @@ Brandium is a tool that helps you generate personalized social media posts using
 - **Platforms**: Configure platforms (LinkedIn, X, TikTok, etc.) with style guidelines
 - **AI Generation**: Generate posts using OpenAI GPT-4.1-mini
 - **Post History**: Track all generated posts
+- **Post Iterations**: Refine posts with AI-powered iterations and version history
 
 ## Tech Stack
 
@@ -193,6 +194,17 @@ DELETE /api/posts/:id      # Delete post
 
 📖 **[Complete Posts Documentation →](./docs/posts/README.md)**
 
+### Post Iterations (protected)
+
+```
+POST   /api/posts/:postId/iterate                    # Create new iteration
+GET    /api/posts/:postId/versions                   # List all versions
+GET    /api/posts/:postId/versions/:versionId        # Get specific version
+PATCH  /api/posts/:postId/versions/:versionId/select # Select a version
+```
+
+📖 **[Complete Iterations Documentation →](./docs/iterations/README.md)**
+
 ## Data Models
 
 ### User
@@ -233,7 +245,20 @@ DELETE /api/posts/:id      # Delete post
 - `platformId` (FK, nullable)
 - `goal`
 - `rawIdea`
+- `generatedText` (from selected version)
+- `currentVersionId` (FK, nullable)
+- `totalVersions`
+- `createdAt`
+
+### PostVersion
+
+- `id` (UUID)
+- `postId` (FK)
+- `versionNumber`
 - `generatedText`
+- `iterationPrompt` (nullable, null for v1)
+- `isSelected`
+- `promptTokens`, `completionTokens`, `totalTokens`
 - `createdAt`
 
 ## Project Structure

@@ -96,6 +96,8 @@ Content-Type: application/json
   "message": "Post generated successfully",
   "data": {
     "postId": "880e8400-e29b-41d4-a716-446655440003",
+    "versionId": "990e8400-e29b-41d4-a716-446655440001",
+    "versionNumber": 1,
     "generatedText": "Exciting news! We just launched AI-powered code review...",
     "usage": {
       "promptTokens": 250,
@@ -110,6 +112,19 @@ Content-Type: application/json
   }
 }
 ```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `postId` | UUID | The created post's ID |
+| `versionId` | UUID | The initial version's ID (v1) |
+| `versionNumber` | integer | Always `1` for initial generation |
+| `generatedText` | string | The AI-generated content |
+| `usage` | object | Token consumption statistics |
+| `context` | object | References to entities used for generation |
+
+> **Note:** Each generated post now automatically creates an initial version (v1). You can iterate on this post using the [Iterations API](../iterations/README.md) to create additional versions.
 
 ---
 
@@ -395,5 +410,5 @@ npm run test:coverage
 
 ---
 
-**Last Updated:** 2025-12-04
-**Version:** 1.0.0
+**Last Updated:** 2025-12-05
+**Version:** 1.1.0
