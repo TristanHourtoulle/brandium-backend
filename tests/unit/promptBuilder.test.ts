@@ -1,8 +1,11 @@
 import {
   buildPrompt,
+  buildIterationPrompt,
   estimateTokenCount,
   validatePromptContext,
+  validateIterationContext,
   PromptContext,
+  IterationPromptContext,
 } from '../../src/utils/promptBuilder';
 
 describe('promptBuilder', () => {
@@ -273,6 +276,292 @@ describe('promptBuilder', () => {
       const result = validatePromptContext(context);
 
       expect(result.valid).toBe(true);
+    });
+  });
+
+  // =====================================
+  // buildIterationPrompt Tests
+  // =====================================
+  describe('buildIterationPrompt', () => {
+    it('should build an iteration prompt with required fields', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Original idea',
+        previousText: 'This is the previous version of the post.',
+        iterationPrompt: 'Make it more professional',
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('PREVIOUS VERSION');
+      expect(prompt).toContain('This is the previous version of the post.');
+      expect(prompt).toContain('MODIFICATION REQUEST');
+      expect(prompt).toContain('Make it more professional');
+      expect(prompt).toContain('YOUR TASK');
+    });
+
+    it('should include original request context', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Launch new feature',
+        goal: 'Generate excitement',
+        previousText: 'Previous content',
+        iterationPrompt: 'Add emojis',
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('ORIGINAL REQUEST');
+      expect(prompt).toContain('Launch new feature');
+      expect(prompt).toContain('Generate excitement');
+    });
+
+    it('should include profile context when provided', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea',
+        previousText: 'Previous content',
+        iterationPrompt: 'Make changes',
+        profile: {
+          id: 'profile-123',
+          name: 'Test Profile',
+          bio: 'Test bio',
+          toneTags: ['professional'],
+          doRules: ['Be concise'],
+          dontRules: ['No jargon'],
+        } as never,
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('PROFILE CONTEXT');
+      expect(prompt).toContain('Test Profile');
+      expect(prompt).toContain('professional');
+    });
+
+    it('should include project context when provided', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea',
+        previousText: 'Previous content',
+        iterationPrompt: 'Make changes',
+        project: {
+          id: 'project-123',
+          name: 'Test Project',
+          description: 'Test description',
+          audience: 'Developers',
+          keyMessages: ['Quality'],
+        } as never,
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('PROJECT CONTEXT');
+      expect(prompt).toContain('Test Project');
+      expect(prompt).toContain('Developers');
+    });
+
+    it('should include platform context when provided', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea',
+        previousText: 'Previous content',
+        iterationPrompt: 'Make changes',
+        platform: {
+          id: 'platform-123',
+          name: 'LinkedIn',
+          styleGuidelines: 'Professional tone',
+          maxLength: 3000,
+        } as never,
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('PLATFORM REQUIREMENTS');
+      expect(prompt).toContain('LinkedIn');
+      expect(prompt).toContain('3000 characters');
+    });
+
+    it('should include all modification instructions', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea',
+        previousText: 'Previous content',
+        iterationPrompt: 'Make changes',
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('Maintaining the original context');
+      expect(prompt).toContain('Preserving what works well');
+      expect(prompt).toContain('Making only the requested changes');
+      expect(prompt).toContain('Keeping the same tone and style');
+      expect(prompt).toContain('Respecting platform character limits');
+      expect(prompt).toContain('Output ONLY the final modified post text');
+    });
+
+    it('should wrap previous text in code block', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea',
+        previousText: 'Previous post content',
+        iterationPrompt: 'Make changes',
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('```\nPrevious post content\n```');
+    });
+
+    it('should trim whitespace from inputs', () => {
+      const context: IterationPromptContext = {
+        rawIdea: '  Test idea  ',
+        previousText: '  Previous content  ',
+        iterationPrompt: '  Make changes  ',
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('Test idea');
+      expect(prompt).toContain('Previous content');
+      expect(prompt).toContain('Make changes');
+      expect(prompt).not.toContain('  Test idea  ');
+    });
+
+    it('should include complete context with all fields', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'New feature launched',
+        goal: 'Generate excitement',
+        previousText: 'Initial post about the feature',
+        iterationPrompt: 'Add more emojis and make it shorter',
+        profile: {
+          id: 'profile-123',
+          name: 'Tech Influencer',
+          bio: 'Tech enthusiast',
+          toneTags: ['enthusiastic'],
+          doRules: ['Use emojis'],
+          dontRules: [],
+        } as never,
+        project: {
+          id: 'project-123',
+          name: 'My App',
+          description: 'Cool app',
+          audience: 'Developers',
+          keyMessages: [],
+        } as never,
+        platform: {
+          id: 'platform-123',
+          name: 'X',
+          styleGuidelines: 'Short',
+          maxLength: 280,
+        } as never,
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      // All sections should be present
+      expect(prompt).toContain('PROFILE CONTEXT');
+      expect(prompt).toContain('PROJECT CONTEXT');
+      expect(prompt).toContain('PLATFORM REQUIREMENTS');
+      expect(prompt).toContain('ORIGINAL REQUEST');
+      expect(prompt).toContain('PREVIOUS VERSION');
+      expect(prompt).toContain('MODIFICATION REQUEST');
+      expect(prompt).toContain('YOUR TASK');
+    });
+
+    it('should handle missing goal in original request', () => {
+      const context: IterationPromptContext = {
+        rawIdea: 'Test idea only',
+        previousText: 'Previous content',
+        iterationPrompt: 'Make changes',
+        goal: null as unknown as undefined,
+      };
+
+      const prompt = buildIterationPrompt(context);
+
+      expect(prompt).toContain('ORIGINAL REQUEST');
+      expect(prompt).toContain('Test idea only');
+      expect(prompt).not.toContain('**Goal:**');
+    });
+  });
+
+  // =====================================
+  // validateIterationContext Tests
+  // =====================================
+  describe('validateIterationContext', () => {
+    it('should return valid for complete iteration context', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: 'Make it better',
+        previousText: 'Previous version text',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return invalid for missing iterationPrompt', () => {
+      const context: Partial<IterationPromptContext> = {
+        previousText: 'Previous version text',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('iterationPrompt');
+    });
+
+    it('should return invalid for empty iterationPrompt', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: '',
+        previousText: 'Previous version text',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('iterationPrompt');
+    });
+
+    it('should return invalid for whitespace-only iterationPrompt', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: '   ',
+        previousText: 'Previous version text',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('iterationPrompt');
+    });
+
+    it('should return invalid for missing previousText', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: 'Make changes',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('previousText');
+    });
+
+    it('should return invalid for empty previousText', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: 'Make changes',
+        previousText: '',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('previousText');
+    });
+
+    it('should return invalid for whitespace-only previousText', () => {
+      const context: Partial<IterationPromptContext> = {
+        iterationPrompt: 'Make changes',
+        previousText: '   ',
+      };
+
+      const result = validateIterationContext(context);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('previousText');
     });
   });
 });
