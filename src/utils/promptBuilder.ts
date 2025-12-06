@@ -1,6 +1,8 @@
 import { Profile } from '../models/Profile';
 import { Project } from '../models/Project';
 import { Platform } from '../models/Platform';
+import { HistoricalPost } from '../models/HistoricalPost';
+import { buildHistoricalPostsContext } from './historicalPostSelector';
 
 /**
  * Context for building the generation prompt
@@ -11,6 +13,10 @@ export interface PromptContext {
   platform?: Platform | null;
   goal?: string | null;
   rawIdea: string;
+  /**
+   * Historical posts to include as writing style examples
+   */
+  historicalPosts?: HistoricalPost[];
 }
 
 /**
@@ -129,6 +135,14 @@ export function buildPrompt(context: PromptContext): string {
   const profileContext = buildProfileContext(context.profile);
   if (profileContext) {
     sections.push(profileContext);
+  }
+
+  // Add historical posts context if available (after profile, before project)
+  if (context.historicalPosts && context.historicalPosts.length > 0) {
+    const historicalContext = buildHistoricalPostsContext(context.historicalPosts);
+    if (historicalContext) {
+      sections.push(historicalContext);
+    }
   }
 
   // Add project context if available
