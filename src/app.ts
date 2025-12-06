@@ -94,6 +94,14 @@ app.get('/', (_req: Request, res: Response) => {
       platforms: 'GET|POST /api/platforms, GET|PUT|DELETE /api/platforms/:id',
       posts: 'GET /api/posts, GET|DELETE /api/posts/:id',
       generate: 'POST /api/generate',
+      ideas: {
+        generate: 'POST /api/ideas/generate',
+        list: 'GET /api/ideas',
+        get: 'GET /api/ideas/:id',
+        use: 'POST /api/ideas/:id/use',
+        delete: 'DELETE /api/ideas/:id',
+        bulkDelete: 'DELETE /api/ideas',
+      },
     },
   });
 });

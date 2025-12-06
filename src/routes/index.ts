@@ -7,6 +7,7 @@ import postRoutes from './posts';
 import postIterationRoutes from './postIterations';
 import generateRoutes from './generate';
 import historicalPostRoutes from './historicalPosts';
+import ideaRoutes from './ideas';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/platforms', platformRoutes);
 router.use('/posts', postRoutes);
 router.use('/posts', postIterationRoutes); // Post iteration routes (versions, iterate)
 router.use('/generate', generateRoutes);
+router.use('/ideas', ideaRoutes); // Post idea generation routes
 
 export default router;
