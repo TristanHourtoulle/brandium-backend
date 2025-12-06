@@ -9,11 +9,13 @@ import {
   Association,
   BelongsToGetAssociationMixin,
   HasManyGetAssociationsMixin,
+  HasManyCreateAssociationMixin,
 } from 'sequelize';
 import { sequelize } from '../config/database';
 
 import type { User } from './User';
 import type { Post } from './Post';
+import type { HistoricalPost } from './HistoricalPost';
 
 class Profile extends Model<InferAttributes<Profile>, InferCreationAttributes<Profile>> {
   // Primary key
@@ -36,15 +38,19 @@ class Profile extends Model<InferAttributes<Profile>, InferCreationAttributes<Pr
   // Associations
   declare user?: NonAttribute<User>;
   declare posts?: NonAttribute<Post[]>;
+  declare historicalPosts?: NonAttribute<HistoricalPost[]>;
 
   // Association methods
   declare getUser: BelongsToGetAssociationMixin<User>;
   declare getPosts: HasManyGetAssociationsMixin<Post>;
+  declare getHistoricalPosts: HasManyGetAssociationsMixin<HistoricalPost>;
+  declare createHistoricalPost: HasManyCreateAssociationMixin<HistoricalPost>;
 
   // Static associations object
   declare static associations: {
     user: Association<Profile, User>;
     posts: Association<Profile, Post>;
+    historicalPosts: Association<Profile, HistoricalPost>;
   };
 }
 
