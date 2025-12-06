@@ -294,6 +294,235 @@ export const postValidators = {
 };
 
 // =====================================
+// Historical Post Validators
+// =====================================
+export const historicalPostValidators = {
+  create: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('content')
+      .trim()
+      .isLength({ min: 1, max: 50000 })
+      .withMessage('Content is required and must be less than 50000 characters'),
+    body('platformId')
+      .optional({ values: 'null' })
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    body('publishedAt')
+      .optional({ values: 'null' })
+      .isISO8601()
+      .withMessage('publishedAt must be a valid ISO 8601 date'),
+    body('externalUrl')
+      .optional({ values: 'null' })
+      .isURL()
+      .withMessage('externalUrl must be a valid URL'),
+    body('engagement')
+      .optional()
+      .isObject()
+      .withMessage('engagement must be an object'),
+    body('engagement.likes')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('engagement.likes must be a non-negative integer'),
+    body('engagement.comments')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('engagement.comments must be a non-negative integer'),
+    body('engagement.shares')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('engagement.shares must be a non-negative integer'),
+    body('engagement.views')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('engagement.views must be a non-negative integer'),
+    body('metadata')
+      .optional()
+      .isObject()
+      .withMessage('metadata must be an object'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  update: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    param('id')
+      .isUUID()
+      .withMessage('Invalid historical post ID'),
+    body('content')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 50000 })
+      .withMessage('Content must be less than 50000 characters'),
+    body('platformId')
+      .optional({ values: 'null' })
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    body('publishedAt')
+      .optional({ values: 'null' })
+      .isISO8601()
+      .withMessage('publishedAt must be a valid ISO 8601 date'),
+    body('externalUrl')
+      .optional({ values: 'null' })
+      .isURL()
+      .withMessage('externalUrl must be a valid URL'),
+    body('engagement')
+      .optional()
+      .isObject()
+      .withMessage('engagement must be an object'),
+    body('metadata')
+      .optional()
+      .isObject()
+      .withMessage('metadata must be an object'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getAll: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID filter'),
+    query('sortBy')
+      .optional()
+      .isIn(['publishedAt', 'createdAt', 'updatedAt'])
+      .withMessage('sortBy must be one of: publishedAt, createdAt, updatedAt'),
+    query('order')
+      .optional()
+      .isIn(['ASC', 'DESC', 'asc', 'desc'])
+      .withMessage('order must be ASC or DESC'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getOne: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    param('id')
+      .isUUID()
+      .withMessage('Invalid historical post ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  delete: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    param('id')
+      .isUUID()
+      .withMessage('Invalid historical post ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  bulkCreate: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('posts')
+      .isArray({ min: 1, max: 100 })
+      .withMessage('posts must be an array with 1-100 items'),
+    body('posts.*.content')
+      .trim()
+      .isLength({ min: 1, max: 50000 })
+      .withMessage('Each post content is required and must be less than 50000 characters'),
+    body('posts.*.platformId')
+      .optional({ values: 'null' })
+      .isUUID()
+      .withMessage('Invalid platform ID in posts'),
+    body('posts.*.publishedAt')
+      .optional({ values: 'null' })
+      .isISO8601()
+      .withMessage('publishedAt must be a valid ISO 8601 date'),
+    body('posts.*.externalUrl')
+      .optional({ values: 'null' })
+      .isURL()
+      .withMessage('externalUrl must be a valid URL'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getStats: [
+    param('profileId')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+};
+
+// =====================================
+// Profile Analysis Validators
+// =====================================
+export const profileAnalysisValidators = {
+  analyzeFromPosts: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    query('autoApply')
+      .optional()
+      .isIn(['true', 'false'])
+      .withMessage('autoApply must be true or false'),
+    query('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    query('maxPosts')
+      .optional()
+      .isInt({ min: 5, max: 50 })
+      .withMessage('maxPosts must be between 5 and 50'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getStats: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  applyAnalysis: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('toneTags')
+      .optional()
+      .isArray()
+      .withMessage('toneTags must be an array'),
+    body('toneTags.*')
+      .optional()
+      .isString()
+      .withMessage('Each toneTag must be a string'),
+    body('doRules')
+      .optional()
+      .isArray()
+      .withMessage('doRules must be an array'),
+    body('doRules.*')
+      .optional()
+      .isString()
+      .withMessage('Each doRule must be a string'),
+    body('dontRules')
+      .optional()
+      .isArray()
+      .withMessage('dontRules must be an array'),
+    body('dontRules.*')
+      .optional()
+      .isString()
+      .withMessage('Each dontRule must be a string'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+};
+
+// =====================================
 // Common Validators (reusable)
 // =====================================
 export const commonValidators = {

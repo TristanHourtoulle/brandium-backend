@@ -6,6 +6,7 @@ import platformRoutes from './platforms';
 import postRoutes from './posts';
 import postIterationRoutes from './postIterations';
 import generateRoutes from './generate';
+import historicalPostRoutes from './historicalPosts';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.use('/auth', authRoutes);
 // Note: authMiddleware is applied in each route file
 // =====================================
 router.use('/profiles', profileRoutes);
+router.use('/profiles/:profileId/historical-posts', historicalPostRoutes); // Historical posts nested under profiles
 router.use('/projects', projectRoutes);
 router.use('/platforms', platformRoutes);
 router.use('/posts', postRoutes);
