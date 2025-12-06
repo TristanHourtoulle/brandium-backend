@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { Profile, Project, Platform, Post } from '../models';
+import { Profile, Project, Platform, Post, HistoricalPost } from '../models';
 import { sequelize } from '../config/database';
 import { findUserResource } from '../utils/controllerHelpers';
 import { buildPrompt, validatePromptContext } from '../utils/promptBuilder';
 import { llmService, RateLimitError, LLMServiceError } from '../services/LLMService';
 import { postVersionService } from '../services/PostVersionService';
+import { selectPostsWithTokenBudget } from '../utils/historicalPostSelector';
 
 /**
  * POST /api/generate
@@ -61,13 +62,37 @@ export const generate = async (
       return;
     }
 
-    // Build the prompt
+    // Fetch historical posts for writing style examples if profile is provided
+    let historicalPosts: HistoricalPost[] = [];
+    if (profile) {
+      const allHistoricalPosts = await HistoricalPost.findAll({
+        where: {
+          profileId: profile.id,
+          userId,
+        },
+        order: [
+          ['publishedAt', 'DESC'],
+          ['createdAt', 'DESC'],
+        ],
+        limit: 20, // Fetch more than needed for scoring
+      });
+
+      // Select the most relevant posts within token budget
+      historicalPosts = selectPostsWithTokenBudget(allHistoricalPosts, {
+        maxPosts: 5,
+        platformId: platformId || null,
+        includeFallback: true,
+      });
+    }
+
+    // Build the prompt with historical posts context
     const prompt = buildPrompt({
       profile,
       project,
       platform,
       goal,
       rawIdea,
+      historicalPosts,
     });
 
     // Generate content using LLM
@@ -115,6 +140,7 @@ export const generate = async (
             profile: profile ? { id: profile.id, name: profile.name } : null,
             project: project ? { id: project.id, name: project.name } : null,
             platform: platform ? { id: platform.id, name: platform.name } : null,
+            historicalPostsUsed: historicalPosts.length,
           },
         },
       });

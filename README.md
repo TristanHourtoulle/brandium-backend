@@ -3,24 +3,710 @@
 [![CI](https://github.com/TristanHourtoulle/brandium-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/TristanHourtoulle/brandium-backend/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/TristanHourtoulle/brandium-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/TristanHourtoulle/brandium-backend)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-Backend API for personalized post generation for personal branding.
+**Generate personalized social media content using AI while maintaining your unique voice.**
 
-## Overview
+---
 
-Brandium is a tool that helps you generate personalized social media posts using AI. It stores your profiles, projects, and platform preferences, then generates optimized content via OpenAI.
+## Table of Contents
 
-### Key Features
+- [What is Brandium?](#what-is-brandium)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Core Concepts](#core-concepts)
+- [Complete Workflow Example](#complete-workflow-example)
+- [Features Deep Dive](#features-deep-dive)
+- [API Reference](#api-reference)
+- [Data Models](#data-models)
+- [Development](#development)
+- [Deployment](#deployment)
+- [License](#license)
 
-- **Authentication**: JWT-based auth with bcrypt password hashing
-- **Profiles**: Store multiple personas with tone, rules, and bio
-- **Projects**: Manage your projects with audience and key messages
-- **Platforms**: Configure platforms (LinkedIn, X, TikTok, etc.) with style guidelines
-- **AI Generation**: Generate posts using OpenAI GPT-4.1-mini
-- **Post History**: Track all generated posts
-- **Post Iterations**: Refine posts with AI-powered iterations and version history
+---
 
-## Tech Stack
+## What is Brandium?
+
+Brandium is a backend API that helps you **generate personalized social media posts** using AI. It learns your writing style, understands your audience, and creates content that sounds authentically like you.
+
+### The Problem
+
+Creating engaging social media content is time-consuming:
+
+- Maintaining consistent tone across platforms
+- Adapting content for different audiences
+- Following platform-specific best practices
+- Staying true to your brand voice
+
+### The Solution
+
+Brandium learns your writing style and generates content in your voice:
+
+```mermaid
+flowchart LR
+    A[Define Profile] --> B[Set Up Project]
+    B --> C[Configure Platforms]
+    C --> D[Import Past Posts]
+    D --> E[AI Learns Style]
+    E --> F[Generate Content]
+    F --> G[Iterate & Refine]
+    G --> H[Perfect Post]
+```
+
+### Architecture Overview
+
+```mermaid
+flowchart TB
+    subgraph Client
+        FE[Frontend App]
+    end
+
+    subgraph "Brandium API"
+        AUTH[Auth Middleware]
+        API[Express Routes]
+        CTRL[Controllers]
+        SVC[Services]
+        LLM[LLM Service]
+    end
+
+    subgraph External
+        OAI[OpenAI API]
+    end
+
+    subgraph Database
+        PG[(PostgreSQL)]
+    end
+
+    FE -->|JWT| AUTH
+    AUTH --> API
+    API --> CTRL
+    CTRL --> SVC
+    SVC --> LLM
+    LLM -->|GPT-4.1-mini| OAI
+    SVC --> PG
+```
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Authentication** | JWT-based auth with bcrypt password hashing |
+| **Multi-Profile** | Create multiple personas with unique tones and rules |
+| **Projects** | Organize content by project with target audiences |
+| **Multi-Platform** | Configure LinkedIn, X, TikTok, etc. with style guidelines |
+| **AI Generation** | Generate posts using OpenAI GPT-4.1-mini |
+| **Post Iterations** | Refine posts with AI-powered iterations and version history |
+| **Historical Posts** | Import past posts for AI learning |
+| **AI Analysis** | Automatically analyze writing style from your content |
+| **Rate Limiting** | Built-in protection against API rate limits |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL 14+ (`brew install postgresql@14` on macOS)
+- OpenAI API key
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/TristanHourtoulle/brandium-backend.git
+cd brandium-backend
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env with your values (especially OPENAI_API_KEY and JWT_SECRET)
+
+# 4. Setup database
+npm run setup
+
+# 5. Run migrations
+npm run db:migrate
+
+# 6. (Optional) Seed demo data
+npm run db:seed
+
+# 7. Start the server
+npm run dev
+```
+
+Server runs on `http://localhost:5000`
+
+### Verify Installation
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Expected response
+{"status":"ok","timestamp":"2024-..."}
+```
+
+---
+
+## Core Concepts
+
+Brandium uses four main entities to generate personalized content:
+
+```mermaid
+erDiagram
+    USER ||--o{ PROFILE : has
+    USER ||--o{ PROJECT : has
+    USER ||--o{ PLATFORM : has
+    USER ||--o{ POST : creates
+    PROFILE ||--o{ HISTORICAL_POST : has
+    POST ||--o{ POST_VERSION : has
+
+    PROFILE {
+        uuid id
+        string name
+        text bio
+        jsonb toneTags
+        jsonb doRules
+        jsonb dontRules
+    }
+
+    PROJECT {
+        uuid id
+        string name
+        text description
+        string audience
+        jsonb keyMessages
+    }
+
+    PLATFORM {
+        uuid id
+        string name
+        text styleGuidelines
+        int maxLength
+    }
+```
+
+### 1. Profiles (Personas)
+
+A profile represents **your voice and tone**. You can have multiple profiles for different contexts (professional, casual, thought leader, etc.).
+
+```json
+{
+  "name": "Tech Thought Leader",
+  "bio": "CTO sharing insights on AI and software architecture",
+  "toneTags": ["professional", "insightful", "approachable"],
+  "doRules": [
+    "Use concrete examples from real experience",
+    "Ask thought-provoking questions",
+    "Share actionable insights"
+  ],
+  "dontRules": [
+    "Avoid jargon overload",
+    "Don't be overly promotional",
+    "Never use clickbait"
+  ]
+}
+```
+
+### 2. Projects
+
+A project defines **what you're promoting** and **who you're talking to**.
+
+```json
+{
+  "name": "Edukai Launch",
+  "description": "AI-powered learning platform for developers",
+  "audience": "Software developers looking to upskill",
+  "keyMessages": [
+    "Learn 3x faster with adaptive AI",
+    "Personalized learning paths",
+    "Real-world projects"
+  ]
+}
+```
+
+### 3. Platforms
+
+Platforms define **where you're posting** and platform-specific guidelines.
+
+```json
+{
+  "name": "LinkedIn",
+  "styleGuidelines": "Professional tone, use line breaks for readability, include a call-to-action",
+  "maxLength": 3000
+}
+```
+
+### 4. Generation Flow
+
+When you generate a post, Brandium combines all context:
+
+```mermaid
+flowchart TD
+    subgraph Input
+        IDEA[Raw Idea]
+        GOAL[Goal]
+    end
+
+    subgraph Context
+        PROFILE[Profile: tone, rules]
+        PROJECT[Project: audience, messages]
+        PLATFORM[Platform: guidelines, length]
+        HISTORY[Historical Posts: style]
+    end
+
+    subgraph AI
+        PROMPT[Prompt Builder]
+        LLM[OpenAI GPT-4.1-mini]
+    end
+
+    subgraph Output
+        POST[Generated Post]
+        VERSIONS[Version History]
+    end
+
+    IDEA --> PROMPT
+    GOAL --> PROMPT
+    PROFILE --> PROMPT
+    PROJECT --> PROMPT
+    PLATFORM --> PROMPT
+    HISTORY -.->|Optional| PROMPT
+    PROMPT --> LLM
+    LLM --> POST
+    POST --> VERSIONS
+```
+
+---
+
+## Complete Workflow Example
+
+Here's a step-by-step guide to generate your first post:
+
+### 1. Register & Login
+
+```bash
+# Register
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+
+# Login (save the token)
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+
+# Response: {"token": "eyJhbG...", "user": {...}}
+```
+
+### 2. Create Your Profile
+
+```bash
+export TOKEN="your-jwt-token"
+
+curl -X POST http://localhost:5000/api/profiles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Professional Voice",
+    "bio": "Startup founder sharing lessons learned",
+    "toneTags": ["authentic", "insightful", "motivational"],
+    "doRules": ["Share real experiences", "Be vulnerable about failures"],
+    "dontRules": ["No humble bragging", "Avoid generic advice"]
+  }'
+
+# Save the profile ID from response
+```
+
+### 3. Create a Project
+
+```bash
+curl -X POST http://localhost:5000/api/projects \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Product Launch",
+    "description": "Launching our new AI feature",
+    "audience": "Tech-savvy professionals aged 25-45",
+    "keyMessages": ["Save 10 hours/week", "AI-powered automation"]
+  }'
+```
+
+### 4. Configure a Platform
+
+```bash
+curl -X POST http://localhost:5000/api/platforms \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "LinkedIn",
+    "styleGuidelines": "Professional but conversational. Use emojis sparingly. Include a question to drive engagement.",
+    "maxLength": 3000
+  }'
+```
+
+### 5. (Optional) Import Historical Posts
+
+```bash
+# Import past posts so AI can learn your style
+curl -X POST http://localhost:5000/api/profiles/{profileId}/historical-posts/bulk \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "posts": [
+      {
+        "content": "Just shipped a feature that took 6 months...",
+        "publishedAt": "2024-01-15T10:00:00Z",
+        "engagement": {"likes": 245, "comments": 32}
+      },
+      {
+        "content": "The hardest part of being a founder...",
+        "publishedAt": "2024-02-20T14:30:00Z",
+        "engagement": {"likes": 512, "comments": 78}
+      }
+    ]
+  }'
+```
+
+### 6. Analyze Your Writing Style
+
+```bash
+# Check if you have enough posts for analysis (minimum 3)
+curl -X GET http://localhost:5000/api/profiles/{profileId}/analysis-stats \
+  -H "Authorization: Bearer $TOKEN"
+
+# Run AI analysis
+curl -X POST http://localhost:5000/api/profiles/{profileId}/analyze-from-posts \
+  -H "Authorization: Bearer $TOKEN"
+
+# Apply the suggestions to your profile
+curl -X POST http://localhost:5000/api/profiles/{profileId}/apply-analysis \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "applyToneTags": true,
+    "applyDoRules": true,
+    "applyDontRules": true,
+    "applyBio": false
+  }'
+```
+
+### 7. Generate Your First Post
+
+```bash
+curl -X POST http://localhost:5000/api/generate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "profileId": "your-profile-id",
+    "projectId": "your-project-id",
+    "platformId": "your-platform-id",
+    "goal": "Announce the new AI feature and drive signups",
+    "rawIdea": "We just launched adaptive quizzes that learn how you learn"
+  }'
+
+# Response includes the generated post and post ID
+```
+
+### 8. Iterate & Refine
+
+```bash
+# Not happy with the first version? Iterate!
+curl -X POST http://localhost:5000/api/posts/{postId}/iterate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "feedback": "Make it more casual and add a personal anecdote"
+  }'
+
+# View all versions
+curl -X GET http://localhost:5000/api/posts/{postId}/versions \
+  -H "Authorization: Bearer $TOKEN"
+
+# Select the best version
+curl -X PATCH http://localhost:5000/api/posts/{postId}/versions/{versionId}/select \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Features Deep Dive
+
+### Multi-Profile Support
+
+Create different personas for different contexts. A tech founder might have:
+
+- **Professional**: For LinkedIn thought leadership
+- **Casual**: For X/Twitter engagement
+- **Educational**: For tutorial content
+
+Each profile maintains its own tone, rules, and historical posts.
+
+### Post Iterations & Versioning
+
+```mermaid
+flowchart LR
+    V1[Version 1<br/>Initial] -->|Feedback| V2[Version 2<br/>More casual]
+    V2 -->|Feedback| V3[Version 3<br/>Added story]
+    V3 -->|Select| FINAL[Selected Version]
+
+    style FINAL fill:#90EE90
+```
+
+- Generate initial post (v1)
+- Provide feedback to iterate
+- AI creates new version while keeping context
+- Compare versions and select the best
+- Track token usage per version
+
+### AI Learning from Historical Posts
+
+Import your past successful posts to help AI understand your style:
+
+1. **Bulk import** up to 100 posts at once
+2. **Include engagement data** (likes, comments, shares)
+3. **AI analyzes** patterns in your writing
+4. **Get suggestions** for tone tags, do/don't rules
+5. **Apply selectively** to your profile
+
+```mermaid
+flowchart TD
+    IMPORT[Import Historical Posts] --> ANALYZE[AI Analysis]
+    ANALYZE --> SUGGESTIONS[Get Suggestions]
+    SUGGESTIONS --> REVIEW[Review & Edit]
+    REVIEW --> APPLY[Apply to Profile]
+    APPLY --> BETTER[Better Generations]
+```
+
+### Smart Rate Limiting
+
+Built-in protection against OpenAI rate limits:
+
+- Configurable requests per minute
+- Token usage tracking
+- Automatic retry with backoff
+- Status endpoint to check limits
+
+```bash
+# Check your rate limit status
+curl -X GET http://localhost:5000/api/generate/status \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## API Reference
+
+All endpoints under `/api/` require JWT authentication except register and login.
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Create new account |
+| `POST` | `/api/auth/login` | Login and get JWT |
+| `GET` | `/api/auth/me` | Get current user |
+
+### Profiles
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/profiles` | List all profiles |
+| `GET` | `/api/profiles/:id` | Get profile by ID |
+| `POST` | `/api/profiles` | Create profile |
+| `PUT` | `/api/profiles/:id` | Update profile |
+| `DELETE` | `/api/profiles/:id` | Delete profile |
+
+### Historical Posts
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/profiles/:profileId/historical-posts` | Create historical post |
+| `GET` | `/api/profiles/:profileId/historical-posts` | List with pagination |
+| `GET` | `/api/profiles/:profileId/historical-posts/:id` | Get by ID |
+| `PATCH` | `/api/profiles/:profileId/historical-posts/:id` | Update |
+| `DELETE` | `/api/profiles/:profileId/historical-posts/:id` | Delete |
+| `POST` | `/api/profiles/:profileId/historical-posts/bulk` | Bulk import (max 100) |
+| `GET` | `/api/profiles/:profileId/historical-posts/stats` | Get statistics |
+
+### Profile Analysis
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/profiles/:id/analysis-stats` | Check readiness for analysis |
+| `POST` | `/api/profiles/:id/analyze-from-posts` | Run AI analysis |
+| `POST` | `/api/profiles/:id/apply-analysis` | Apply suggestions |
+
+### Projects
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/projects` | List all projects |
+| `GET` | `/api/projects/:id` | Get project by ID |
+| `POST` | `/api/projects` | Create project |
+| `PUT` | `/api/projects/:id` | Update project |
+| `DELETE` | `/api/projects/:id` | Delete project |
+
+### Platforms
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/platforms` | List all platforms |
+| `GET` | `/api/platforms/:id` | Get platform by ID |
+| `POST` | `/api/platforms` | Create platform |
+| `PUT` | `/api/platforms/:id` | Update platform |
+| `DELETE` | `/api/platforms/:id` | Delete platform |
+
+### Generation
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/generate` | Generate post via AI |
+| `GET` | `/api/generate/status` | Check rate limit status |
+
+**Request body for `POST /api/generate`:**
+```json
+{
+  "profileId": "uuid",
+  "projectId": "uuid",
+  "platformId": "uuid",
+  "goal": "Announce new feature",
+  "rawIdea": "Just launched adaptive quizzes!"
+}
+```
+
+> **Note:** Only `rawIdea` is required. All other fields are optional but recommended for better results.
+
+### Posts
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/posts` | List all posts (paginated) |
+| `GET` | `/api/posts/:id` | Get post by ID |
+| `DELETE` | `/api/posts/:id` | Delete post |
+
+### Post Iterations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/posts/:postId/iterate` | Create new iteration |
+| `GET` | `/api/posts/:postId/versions` | List all versions |
+| `GET` | `/api/posts/:postId/versions/:versionId` | Get specific version |
+| `PATCH` | `/api/posts/:postId/versions/:versionId/select` | Select a version |
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Server health check |
+
+---
+
+## Data Models
+
+### User
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `email` | String | Unique email |
+| `passwordHash` | String | Bcrypt hash |
+| `createdAt` | DateTime | Creation timestamp |
+
+### Profile
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `name` | String | Profile name |
+| `bio` | Text | Profile biography |
+| `toneTags` | JSONB | Array of tone descriptors |
+| `doRules` | JSONB | Array of rules to follow |
+| `dontRules` | JSONB | Array of rules to avoid |
+
+### Project
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `name` | String | Project name |
+| `description` | Text | Project description |
+| `audience` | String | Target audience |
+| `keyMessages` | JSONB | Array of key messages |
+
+### Platform
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `name` | String | Platform name |
+| `styleGuidelines` | Text | Platform-specific guidelines |
+| `maxLength` | Integer | Max post length (nullable) |
+
+### Post
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `profileId` | UUID | Foreign key to Profile (nullable) |
+| `projectId` | UUID | Foreign key to Project (nullable) |
+| `platformId` | UUID | Foreign key to Platform (nullable) |
+| `goal` | String | Post goal |
+| `rawIdea` | Text | Original idea |
+| `generatedText` | Text | Current selected text |
+| `currentVersionId` | UUID | Selected version (nullable) |
+| `totalVersions` | Integer | Number of versions |
+
+### PostVersion
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `postId` | UUID | Foreign key to Post |
+| `versionNumber` | Integer | Version number |
+| `generatedText` | Text | Generated content |
+| `iterationPrompt` | Text | Feedback (null for v1) |
+| `isSelected` | Boolean | Is this the selected version |
+| `promptTokens` | Integer | Tokens in prompt |
+| `completionTokens` | Integer | Tokens in completion |
+| `totalTokens` | Integer | Total tokens used |
+
+### HistoricalPost
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `profileId` | UUID | Foreign key to Profile |
+| `platformId` | UUID | Foreign key to Platform (nullable) |
+| `content` | Text | Post content |
+| `publishedAt` | DateTime | Publication date (nullable) |
+| `externalUrl` | String | URL to original post (nullable) |
+| `engagement` | JSONB | {likes, comments, shares, views} |
+| `metadata` | JSONB | Additional metadata |
+
+---
+
+## Development
+
+### Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -35,235 +721,9 @@ Brandium is a tool that helps you generate personalized social media posts using
 | Security | helmet, cors |
 | Testing | Jest + Supertest |
 
-## Prerequisites
+### Project Structure
 
-- Node.js 20+
-- PostgreSQL 14+ (via Homebrew: `brew install postgresql@14`)
-- OpenAI API key
-
-## Quick Start
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/TristanHourtoulle/brandium-backend.git
-cd brandium-backend
-npm install
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.example .env
-# Edit .env with your values (especially OPENAI_API_KEY)
-```
-
-### 3. Setup database
-
-```bash
-npm run setup
-```
-
-This will:
-- Check PostgreSQL installation
-- Create user `brandium_user`
-- Create databases `brandium_dev` and `brandium_test`
-- Configure permissions
-
-### 4. Run migrations
-
-```bash
-npm run db:migrate
-```
-
-### 5. (Optional) Seed demo data
-
-```bash
-npm run db:seed
-```
-
-### 6. Start the server
-
-```bash
-npm run dev
-```
-
-Server runs on `http://localhost:5000`
-
-## NPM Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start with hot reload (nodemon) |
-| `npm run build` | Compile TypeScript to JavaScript |
-| `npm start` | Start in production mode |
-| `npm test` | Run tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage |
-| `npm run typecheck` | Check TypeScript types without compiling |
-| `npm run lint` | Check code with ESLint |
-| `npm run lint:fix` | Fix ESLint errors |
-| `npm run format` | Format code with Prettier |
-| `npm run setup` | Setup PostgreSQL database |
-| `npm run db:migrate` | Run migrations |
-| `npm run db:migrate:undo` | Undo last migration |
-| `npm run db:seed` | Run all seeders |
-| `npm run db:reset` | Reset DB (undo all + migrate + seed) |
-
-## API Endpoints
-
-### Health Check
-
-```
-GET /health
-```
-
-### Authentication
-
-```
-POST /api/auth/register    # Register new user
-POST /api/auth/login       # Login
-GET  /api/auth/me          # Get current user (protected)
-```
-
-📖 **[Complete Authentication Documentation →](./docs/auth/README.md)**
-
-### Profiles (protected)
-
-```
-GET    /api/profiles       # List all profiles
-GET    /api/profiles/:id   # Get profile by ID
-POST   /api/profiles       # Create profile
-PUT    /api/profiles/:id   # Update profile
-DELETE /api/profiles/:id   # Delete profile
-```
-
-📖 **[Complete Profiles Documentation →](./docs/profiles/README.md)**
-
-### Projects (protected)
-
-```
-GET    /api/projects       # List all projects
-GET    /api/projects/:id   # Get project by ID
-POST   /api/projects       # Create project
-PUT    /api/projects/:id   # Update project
-DELETE /api/projects/:id   # Delete project
-```
-
-📖 **[Complete Projects Documentation →](./docs/projects/README.md)**
-
-### Platforms (protected)
-
-```
-GET    /api/platforms       # List all platforms
-GET    /api/platforms/:id   # Get platform by ID
-POST   /api/platforms       # Create platform
-PUT    /api/platforms/:id   # Update platform
-DELETE /api/platforms/:id   # Delete platform
-```
-
-📖 **[Complete Platforms Documentation →](./docs/platforms/README.md)**
-
-### Generation (protected)
-
-```
-POST /api/generate         # Generate post via OpenAI
-GET  /api/generate/status  # Check rate limit status
-```
-
-**Request body for POST /api/generate:**
-```json
-{
-  "profileId": "uuid",      // optional
-  "projectId": "uuid",      // optional
-  "platformId": "uuid",     // optional
-  "goal": "Announce new feature",  // optional
-  "rawIdea": "Just launched adaptive quizzes in Edukai!"  // required
-}
-```
-
-📖 **[Complete Generation Documentation →](./docs/generate/README.md)**
-
-### Posts (protected)
-
-```
-GET    /api/posts          # List all posts (paginated)
-GET    /api/posts/:id      # Get post by ID
-DELETE /api/posts/:id      # Delete post
-```
-
-📖 **[Complete Posts Documentation →](./docs/posts/README.md)**
-
-### Post Iterations (protected)
-
-```
-POST   /api/posts/:postId/iterate                    # Create new iteration
-GET    /api/posts/:postId/versions                   # List all versions
-GET    /api/posts/:postId/versions/:versionId        # Get specific version
-PATCH  /api/posts/:postId/versions/:versionId/select # Select a version
-```
-
-📖 **[Complete Iterations Documentation →](./docs/iterations/README.md)**
-
-## Data Models
-
-### User
-- `id` (UUID)
-- `email` (unique)
-- `passwordHash`
-- `createdAt`, `updatedAt`
-
-### Profile
-- `id` (UUID)
-- `userId` (FK)
-- `name`
-- `bio`
-- `toneTags` (JSONB array)
-- `doRules` (JSONB array)
-- `dontRules` (JSONB array)
-
-### Project
-- `id` (UUID)
-- `userId` (FK)
-- `name`
-- `description`
-- `audience`
-- `keyMessages` (JSONB array)
-
-### Platform
-- `id` (UUID)
-- `userId` (FK)
-- `name`
-- `styleGuidelines`
-- `maxLength` (nullable)
-
-### Post
-- `id` (UUID)
-- `userId` (FK)
-- `profileId` (FK, nullable)
-- `projectId` (FK, nullable)
-- `platformId` (FK, nullable)
-- `goal`
-- `rawIdea`
-- `generatedText` (from selected version)
-- `currentVersionId` (FK, nullable)
-- `totalVersions`
-- `createdAt`
-
-### PostVersion
-
-- `id` (UUID)
-- `postId` (FK)
-- `versionNumber`
-- `generatedText`
-- `iterationPrompt` (nullable, null for v1)
-- `isSelected`
-- `promptTokens`, `completionTokens`, `totalTokens`
-- `createdAt`
-
-## Project Structure
-
-```
+```text
 brandium-backend/
 ├── src/
 │   ├── app.ts              # Express server setup
@@ -282,52 +742,29 @@ brandium-backend/
 │   └── integration/        # API tests
 ├── migrations/             # Database migrations (JavaScript)
 ├── seeders/                # Database seeders (JavaScript)
-├── scripts/
-│   └── setup-db.sh         # Database setup script
-├── .env.example            # Environment template
-├── .sequelizerc            # Sequelize CLI config
-├── jest.config.js          # Jest configuration
-├── eslint.config.js        # ESLint configuration
-├── tsconfig.json           # TypeScript configuration
-└── package.json
+├── docs/                   # Detailed documentation
+└── scripts/                # Utility scripts
 ```
 
-## Environment Variables
+### NPM Scripts
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment | `development` |
-| `PORT` | Server port | `5000` |
-| `DB_HOST` | Database host | `localhost` |
-| `DB_PORT` | Database port | `5432` |
-| `DB_NAME` | Database name | `brandium_dev` |
-| `DB_USER` | Database user | `brandium_user` |
-| `DB_PASSWORD` | Database password | `brandium_pass` |
-| `JWT_SECRET` | JWT signing secret | - |
-| `JWT_EXPIRES_IN` | JWT expiration | `7d` |
-| `OPENAI_API_KEY` | OpenAI API key | - |
-| `OPENAI_MODEL` | OpenAI model | `gpt-4.1-mini` |
-| `OPENAI_MAX_REQUESTS_PER_MINUTE` | Rate limit for requests | `20` |
-| `OPENAI_MAX_TOKENS_PER_MINUTE` | Rate limit for tokens | `40000` |
-| `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:3000` |
-
-## Development
-
-### Code Style
-
-- ESLint for linting
-- Prettier for formatting
-- Single quotes, semicolons, 2-space indent
-
-### Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-```
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start with hot reload (nodemon) |
+| `npm run build` | Compile TypeScript |
+| `npm start` | Start in production mode |
+| `npm test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run typecheck` | Check TypeScript types |
+| `npm run lint` | Check code with ESLint |
+| `npm run lint:fix` | Fix ESLint errors |
+| `npm run format` | Format code with Prettier |
+| `npm run setup` | Setup PostgreSQL database |
+| `npm run db:migrate` | Run migrations |
+| `npm run db:migrate:undo` | Undo last migration |
+| `npm run db:seed` | Run all seeders |
+| `npm run db:reset` | Reset DB (undo all + migrate + seed) |
 
 ### Database Commands
 
@@ -342,6 +779,80 @@ npx sequelize-cli seed:generate --name demo-data
 npm run db:reset
 ```
 
+### Code Style
+
+- ESLint + Prettier configured
+- Single quotes, semicolons, 2-space indent
+- TypeScript strict mode enabled
+- Unused parameters prefixed with `_`
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Watch mode
+npm run test:watch
+```
+
+---
+
+## Deployment
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NODE_ENV` | Environment (`development`, `production`, `test`) | Yes |
+| `PORT` | Server port (default: 5000) | No |
+| `DB_HOST` | Database host | Yes |
+| `DB_PORT` | Database port (default: 5432) | No |
+| `DB_NAME` | Database name | Yes |
+| `DB_USER` | Database user | Yes |
+| `DB_PASSWORD` | Database password | Yes |
+| `JWT_SECRET` | JWT signing secret (use strong random string) | Yes |
+| `JWT_EXPIRES_IN` | JWT expiration (default: 7d) | No |
+| `OPENAI_API_KEY` | OpenAI API key | Yes |
+| `OPENAI_MODEL` | OpenAI model (default: gpt-4.1-mini) | No |
+| `OPENAI_MAX_REQUESTS_PER_MINUTE` | Rate limit (default: 20) | No |
+| `OPENAI_MAX_TOKENS_PER_MINUTE` | Token limit (default: 40000) | No |
+| `CORS_ORIGIN` | Allowed CORS origin | Yes |
+
+### Production Build
+
+```bash
+# Build TypeScript
+npm run build
+
+# Start production server (runs migrations automatically)
+npm start
+
+# Or without auto-migration
+npm run start:no-migrate
+```
+
+### Docker (Example)
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist ./dist
+EXPOSE 5000
+CMD ["npm", "start"]
+```
+
+---
+
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Built with love by [Tristan Hourtoulle](https://github.com/TristanHourtoulle)**

@@ -149,6 +149,7 @@ describe('GenerateController Unit Tests', () => {
           profile: { id: testProfile.id, name: 'Test Profile' },
           project: { id: testProject.id, name: 'Test Project' },
           platform: { id: testPlatform.id, name: 'LinkedIn' },
+          historicalPostsUsed: 0,
         });
       });
 

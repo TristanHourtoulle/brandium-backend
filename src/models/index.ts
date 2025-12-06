@@ -5,6 +5,7 @@ import { Project } from './Project';
 import { Platform } from './Platform';
 import { Post } from './Post';
 import { PostVersion } from './PostVersion';
+import { HistoricalPost } from './HistoricalPost';
 
 // =====================================
 // Define Associations
@@ -45,6 +46,12 @@ Profile.hasMany(Post, {
   foreignKey: 'profileId',
   as: 'posts',
   onDelete: 'SET NULL',
+});
+
+Profile.hasMany(HistoricalPost, {
+  foreignKey: 'profileId',
+  as: 'historicalPosts',
+  onDelete: 'CASCADE',
 });
 
 // Project associations
@@ -109,6 +116,22 @@ PostVersion.belongsTo(Post, {
   as: 'post',
 });
 
+// HistoricalPost associations
+HistoricalPost.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
+
+HistoricalPost.belongsTo(Profile, {
+  foreignKey: 'profileId',
+  as: 'profile',
+});
+
+HistoricalPost.belongsTo(Platform, {
+  foreignKey: 'platformId',
+  as: 'platform',
+});
+
 // =====================================
 // Export all models and sequelize instance
 // =====================================
@@ -120,7 +143,8 @@ const db = {
   Platform,
   Post,
   PostVersion,
+  HistoricalPost,
 };
 
-export { sequelize, User, Profile, Project, Platform, Post, PostVersion };
+export { sequelize, User, Profile, Project, Platform, Post, PostVersion, HistoricalPost };
 export default db;
