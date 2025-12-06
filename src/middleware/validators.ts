@@ -523,6 +523,107 @@ export const profileAnalysisValidators = {
 };
 
 // =====================================
+// Idea Generation Validators
+// =====================================
+export const ideaValidators = {
+  generate: [
+    body('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('profileId must be a valid UUID'),
+    body('projectId')
+      .optional()
+      .isUUID()
+      .withMessage('projectId must be a valid UUID'),
+    body('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('platformId must be a valid UUID'),
+    body('auto')
+      .optional()
+      .isBoolean()
+      .withMessage('auto must be a boolean'),
+    body('customContext')
+      .optional()
+      .isString()
+      .isLength({ max: 2000 })
+      .withMessage('customContext must be a string with max 2000 characters'),
+    body('count')
+      .optional()
+      .isInt({ min: 1, max: 20 })
+      .withMessage('count must be an integer between 1 and 20'),
+    body('excludeRecentTopics')
+      .optional()
+      .isBoolean()
+      .withMessage('excludeRecentTopics must be a boolean'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  list: [
+    query('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('profileId must be a valid UUID'),
+    query('projectId')
+      .optional()
+      .isUUID()
+      .withMessage('projectId must be a valid UUID'),
+    query('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('platformId must be a valid UUID'),
+    query('isUsed')
+      .optional()
+      .isIn(['true', 'false'])
+      .withMessage('isUsed must be true or false'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('limit must be between 1 and 100'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getById: [
+    param('id')
+      .isUUID()
+      .withMessage('id must be a valid UUID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  use: [
+    param('id')
+      .isUUID()
+      .withMessage('id must be a valid UUID'),
+    body('postId')
+      .optional()
+      .isUUID()
+      .withMessage('postId must be a valid UUID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  delete: [
+    param('id')
+      .isUUID()
+      .withMessage('id must be a valid UUID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  bulkDelete: [
+    body('ids')
+      .isArray({ min: 1, max: 100 })
+      .withMessage('ids must be an array with 1-100 items'),
+    body('ids.*')
+      .isUUID()
+      .withMessage('Each id must be a valid UUID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+};
+
+// =====================================
 // Common Validators (reusable)
 // =====================================
 export const commonValidators = {

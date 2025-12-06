@@ -103,6 +103,7 @@ flowchart TB
 | **Post Iterations** | Refine posts with AI-powered iterations and version history |
 | **Historical Posts** | Import past posts for AI learning |
 | **AI Analysis** | Automatically analyze writing style from your content |
+| **AI Ideas** | Generate creative post ideas based on your context |
 | **Rate Limiting** | Built-in protection against API rate limits |
 
 ---
@@ -166,8 +167,10 @@ erDiagram
     USER ||--o{ PROJECT : has
     USER ||--o{ PLATFORM : has
     USER ||--o{ POST : creates
+    USER ||--o{ POST_IDEA : generates
     PROFILE ||--o{ HISTORICAL_POST : has
     POST ||--o{ POST_VERSION : has
+    POST_IDEA }o--|| POST : becomes
 
     PROFILE {
         uuid id
@@ -191,6 +194,15 @@ erDiagram
         string name
         text styleGuidelines
         int maxLength
+    }
+
+    POST_IDEA {
+        uuid id
+        string title
+        text description
+        decimal relevanceScore
+        jsonb tags
+        boolean isUsed
     }
 ```
 
@@ -577,6 +589,32 @@ All endpoints under `/api/` require JWT authentication except register and login
 | `POST` | `/api/generate` | Generate post via AI |
 | `GET` | `/api/generate/status` | Check rate limit status |
 
+### Ideas
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/ideas/generate` | Generate post ideas based on context |
+| `GET` | `/api/ideas` | List user's saved ideas (paginated) |
+| `GET` | `/api/ideas/:id` | Get idea by ID |
+| `POST` | `/api/ideas/:id/use` | Mark idea as used |
+| `DELETE` | `/api/ideas/:id` | Delete idea |
+| `DELETE` | `/api/ideas` | Bulk delete ideas |
+
+**Request body for `POST /api/ideas/generate`:**
+```json
+{
+  "profileId": "uuid (optional)",
+  "projectId": "uuid (optional)",
+  "platformId": "uuid (optional)",
+  "auto": true,
+  "customContext": "Additional context (optional)",
+  "count": 10,
+  "excludeRecentTopics": true
+}
+```
+
+> **Note:** Use `auto: true` to automatically select context from your most recent resources. Alternatively, provide specific IDs or custom context.
+
 **Request body for `POST /api/generate`:**
 ```json
 {
@@ -701,6 +739,25 @@ All endpoints under `/api/` require JWT authentication except register and login
 | `externalUrl` | String | URL to original post (nullable) |
 | `engagement` | JSONB | {likes, comments, shares, views} |
 | `metadata` | JSONB | Additional metadata |
+
+### PostIdea
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Primary key |
+| `userId` | UUID | Foreign key to User |
+| `profileId` | UUID | Foreign key to Profile (nullable) |
+| `projectId` | UUID | Foreign key to Project (nullable) |
+| `platformId` | UUID | Foreign key to Platform (nullable) |
+| `postId` | UUID | Foreign key to Post if used (nullable) |
+| `title` | String | Idea title (max 255 chars) |
+| `description` | Text | Detailed description |
+| `suggestedGoal` | Text | Suggested goal for the post (nullable) |
+| `relevanceScore` | Decimal | Score 0-1 indicating relevance |
+| `tags` | JSONB | Array of tags |
+| `generationContext` | JSONB | Context used for generation |
+| `isUsed` | Boolean | Whether idea has been used |
+| `usedAt` | DateTime | When idea was used (nullable) |
 
 ---
 
