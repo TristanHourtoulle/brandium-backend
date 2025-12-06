@@ -19,6 +19,8 @@ Brandium is a tool that helps you generate personalized social media posts using
 - **AI Generation**: Generate posts using OpenAI GPT-4.1-mini
 - **Post History**: Track all generated posts
 - **Post Iterations**: Refine posts with AI-powered iterations and version history
+- **Historical Posts**: Store past posts for AI learning and style analysis
+- **AI Profile Analysis**: Automatically analyze writing style from historical posts
 
 ## Tech Stack
 
@@ -140,6 +142,28 @@ DELETE /api/profiles/:id   # Delete profile
 
 📖 **[Complete Profiles Documentation →](./docs/profiles/README.md)**
 
+### Historical Posts (protected)
+
+```
+POST   /api/profiles/:profileId/historical-posts        # Create historical post
+GET    /api/profiles/:profileId/historical-posts        # List with pagination
+GET    /api/profiles/:profileId/historical-posts/:id    # Get by ID
+PATCH  /api/profiles/:profileId/historical-posts/:id    # Update
+DELETE /api/profiles/:profileId/historical-posts/:id    # Delete
+POST   /api/profiles/:profileId/historical-posts/bulk   # Bulk import (max 100)
+GET    /api/profiles/:profileId/historical-posts/stats  # Statistics
+```
+
+### Profile Analysis (protected)
+
+```
+GET  /api/profiles/:id/analysis-stats      # Check if ready for analysis
+POST /api/profiles/:id/analyze-from-posts  # Analyze posts with AI
+POST /api/profiles/:id/apply-analysis      # Apply suggestions to profile
+```
+
+📖 **[Complete Historical Posts & Analysis Documentation →](./docs/historical-posts/API_DOCUMENTATION.md)**
+
 ### Projects (protected)
 
 ```
@@ -260,6 +284,19 @@ PATCH  /api/posts/:postId/versions/:versionId/select # Select a version
 - `isSelected`
 - `promptTokens`, `completionTokens`, `totalTokens`
 - `createdAt`
+
+### HistoricalPost
+
+- `id` (UUID)
+- `userId` (FK)
+- `profileId` (FK)
+- `platformId` (FK, nullable)
+- `content`
+- `publishedAt` (nullable)
+- `externalUrl` (nullable)
+- `engagement` (JSONB: likes, comments, shares, views)
+- `metadata` (JSONB)
+- `createdAt`, `updatedAt`
 
 ## Project Structure
 
