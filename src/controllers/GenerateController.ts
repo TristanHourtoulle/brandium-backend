@@ -6,6 +6,7 @@ import { buildPrompt, validatePromptContext } from '../utils/promptBuilder';
 import { llmService, RateLimitError, LLMServiceError } from '../services/LLMService';
 import { postVersionService } from '../services/PostVersionService';
 import { selectPostsWithTokenBudget } from '../utils/historicalPostSelector';
+import { isPlatformSupported } from '../config/constants';
 
 /**
  * POST /api/generate
@@ -48,6 +49,16 @@ export const generate = async (
       res.status(404).json({
         error: 'Not Found',
         message: 'Platform not found',
+      });
+      return;
+    }
+
+    // LinkedIn-only validation: reject unsupported platforms
+    if (platform && !isPlatformSupported(platform.name)) {
+      res.status(400).json({
+        error: 'Platform Not Supported',
+        message: `Generation is currently only supported for LinkedIn. Platform "${platform.name}" is not supported yet.`,
+        supportedPlatforms: ['LinkedIn'],
       });
       return;
     }

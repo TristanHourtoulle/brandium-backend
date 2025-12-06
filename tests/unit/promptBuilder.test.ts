@@ -296,7 +296,7 @@ describe('promptBuilder', () => {
       expect(prompt).toContain('This is the previous version of the post.');
       expect(prompt).toContain('MODIFICATION REQUEST');
       expect(prompt).toContain('Make it more professional');
-      expect(prompt).toContain('YOUR TASK');
+      expect(prompt).toContain('STRICT MODIFICATION RULES');
     });
 
     it('should include original request context', () => {
@@ -386,12 +386,13 @@ describe('promptBuilder', () => {
 
       const prompt = buildIterationPrompt(context);
 
-      expect(prompt).toContain('Maintaining the original context');
-      expect(prompt).toContain('Preserving what works well');
-      expect(prompt).toContain('Making only the requested changes');
-      expect(prompt).toContain('Keeping the same tone and style');
-      expect(prompt).toContain('Respecting platform character limits');
-      expect(prompt).toContain('Output ONLY the final modified post text');
+      // New surgical modification rules
+      expect(prompt).toContain('SURGICAL edit');
+      expect(prompt).toContain('KEEP');
+      expect(prompt).toContain('ONLY');
+      expect(prompt).toContain('WORD FOR WORD');
+      expect(prompt).toContain('DO NOT');
+      expect(prompt).toContain('Output ONLY the modified post');
     });
 
     it('should wrap previous text in code block', () => {
@@ -459,7 +460,7 @@ describe('promptBuilder', () => {
       expect(prompt).toContain('ORIGINAL REQUEST');
       expect(prompt).toContain('PREVIOUS VERSION');
       expect(prompt).toContain('MODIFICATION REQUEST');
-      expect(prompt).toContain('YOUR TASK');
+      expect(prompt).toContain('STRICT MODIFICATION RULES');
     });
 
     it('should handle missing goal in original request', () => {

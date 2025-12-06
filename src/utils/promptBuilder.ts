@@ -103,7 +103,7 @@ function buildPlatformContext(platform: Platform | null | undefined): string {
 }
 
 /**
- * Build the main task section
+ * Build the main task section with LinkedIn-optimized instructions
  */
 function buildTaskSection(goal: string | null | undefined, rawIdea: string): string {
   let task = '# YOUR TASK\n\n';
@@ -114,13 +114,30 @@ function buildTaskSection(goal: string | null | undefined, rawIdea: string): str
 
   task += `## Raw Idea to Transform\n${rawIdea.trim()}\n\n`;
 
-  task += '## Instructions\n';
-  task += '1. Transform the raw idea into an engaging social media post.\n';
-  task += '2. Apply the profile\'s tone and style if provided.\n';
-  task += '3. Consider the project\'s audience and key messages if provided.\n';
-  task += '4. Follow the platform\'s guidelines and character limits if provided.\n';
-  task += '5. Make the post authentic, engaging, and actionable.\n';
-  task += '6. Output ONLY the final post text, nothing else.\n';
+  task += '## STRICT OUTPUT REQUIREMENTS\n\n';
+
+  task += '### Structure (follow this order):\n';
+  task += '1. **HOOK** (2-3 lines): Stop the scroll. Use question, stat, bold opinion, or story opener.\n';
+  task += '2. **BODY** (main content): Develop your point with short paragraphs. One idea = one paragraph.\n';
+  task += '3. **CTA** (last line): End with a question that invites comments.\n\n';
+
+  task += '### Formatting Rules:\n';
+  task += '- Line break after EVERY sentence (mobile readability)\n';
+  task += '- Paragraphs of 1-3 lines maximum\n';
+  task += '- Use → or - for lists, not bullets\n';
+  task += '- Emojis: 0-3 max, only at line starts or before CTA\n';
+  task += '- Hashtags: 3-5 at the very end, separated by spaces\n';
+  task += '- Length: 1200-1800 characters ideal\n\n';
+
+  task += '### Content Rules:\n';
+  task += '- First person narrative\n';
+  task += '- Conversational tone (reading age 6-9)\n';
+  task += '- NO corporate jargon or buzzwords\n';
+  task += '- NO external links in the post body\n';
+  task += '- DO NOT start with "I" - vary your openings\n\n';
+
+  task += '### Output:\n';
+  task += 'Write ONLY the final LinkedIn post. No explanations, no alternatives, no meta-commentary.\n';
 
   return task;
 }
@@ -182,10 +199,10 @@ export function validatePromptContext(context: PromptContext): { valid: boolean;
 }
 
 /**
- * Build the iteration task section
+ * Build the iteration task section with surgical precision rules
  */
 function buildIterationTaskSection(previousText: string, iterationPrompt: string): string {
-  let task = '# PREVIOUS VERSION\n\n';
+  let task = '# PREVIOUS VERSION (DO NOT REWRITE ENTIRELY)\n\n';
   task += '```\n';
   task += previousText.trim();
   task += '\n```\n\n';
@@ -194,14 +211,25 @@ function buildIterationTaskSection(previousText: string, iterationPrompt: string
   task += iterationPrompt.trim();
   task += '\n\n';
 
-  task += '# YOUR TASK\n\n';
-  task += 'Modify the previous version according to the modification request while:\n';
-  task += '1. Maintaining the original context and constraints.\n';
-  task += '2. Preserving what works well in the previous version.\n';
-  task += '3. Making only the requested changes.\n';
-  task += '4. Keeping the same tone and style unless specifically asked to change it.\n';
-  task += '5. Respecting platform character limits if specified.\n';
-  task += '6. Output ONLY the final modified post text, nothing else.\n';
+  task += '# STRICT MODIFICATION RULES\n\n';
+
+  task += '**CRITICAL: This is a SURGICAL edit, NOT a rewrite.**\n\n';
+
+  task += '## Before modifying, identify:\n';
+  task += '1. The EXACT sentences/words that need to change\n';
+  task += '2. Whether the request is about: content, tone, structure, or length\n\n';
+
+  task += '## Rules:\n';
+  task += '1. **KEEP** all parts NOT mentioned in the request **WORD FOR WORD**\n';
+  task += '2. **ONLY** modify what is explicitly requested\n';
+  task += '3. If the request is ambiguous, make the **MINIMAL** change possible\n';
+  task += '4. **DO NOT** "improve", "enhance", or "fix" other parts\n';
+  task += '5. **DO NOT** change the hook unless specifically asked\n';
+  task += '6. **DO NOT** change the CTA unless specifically asked\n';
+  task += '7. **PRESERVE** emoji usage, line breaks, and formatting\n\n';
+
+  task += '## Output:\n';
+  task += 'Output ONLY the modified post. If you changed more than requested, you FAILED.\n';
 
   return task;
 }

@@ -2,6 +2,7 @@ import { Transaction, Op } from 'sequelize';
 import { Post, PostVersion, Profile, Project, Platform } from '../models';
 import { llmService, GenerateResponse } from './LLMService';
 import { buildIterationPrompt } from '../utils/promptBuilder';
+import { isPlatformSupported, OPENAI } from '../config/constants';
 
 /**
  * Parameters for creating an initial version
@@ -110,6 +111,13 @@ export class PostVersionService {
       throw new Error('Post not found or access denied');
     }
 
+    // LinkedIn-only validation for iterations
+    if (post.platform && !isPlatformSupported(post.platform.name)) {
+      throw new Error(
+        `Iterations are only supported for LinkedIn posts. This post uses "${post.platform.name}".`,
+      );
+    }
+
     // Get the current/latest version text
     const previousText = post.currentVersion?.generatedText || post.generatedText;
 
@@ -124,10 +132,11 @@ export class PostVersionService {
       iterationPrompt,
     });
 
-    // Generate new content
+    // Generate new content with iteration-specific settings (lower temperature for precision)
     const result = await llmService.generate({
       prompt,
-      maxTokens,
+      maxTokens: maxTokens || OPENAI.ITERATION.maxTokens,
+      temperature: OPENAI.ITERATION.temperature,
     });
 
     // Calculate new version number

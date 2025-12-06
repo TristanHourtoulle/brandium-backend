@@ -162,13 +162,14 @@ describe('historicalPostSelector', () => {
     });
 
     it('should give bonus to ideal content length posts', () => {
+      // LinkedIn optimal length is 1200-1800 characters
       const posts = [
         createMockPost('short', 'Too short'),
         createMockPost(
           'ideal',
-          'This is an ideal length post with about 150 characters of content that should score well in the selection algorithm.',
+          'A'.repeat(1500), // 1500 chars = within LinkedIn optimal range (1200-1800)
         ),
-        createMockPost('long', 'A'.repeat(2000)),
+        createMockPost('long', 'A'.repeat(3500)), // Too long
       ];
 
       const result = selectRelevantPosts(posts, { maxPosts: 1 });
@@ -254,8 +255,8 @@ describe('historicalPostSelector', () => {
       const result = buildHistoricalPostsContext(posts);
 
       expect(result).toContain('# WRITING STYLE EXAMPLES');
-      expect(result).toContain('real examples');
-      expect(result).toContain('Match the tone');
+      expect(result).toContain('REAL past posts');
+      expect(result).toContain('MATCH this style');
     });
 
     it('should include formatted posts', () => {
