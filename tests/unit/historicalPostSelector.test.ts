@@ -242,6 +242,78 @@ describe('historicalPostSelector', () => {
       expect(result).toContain('First content');
       expect(result).toContain('Second content');
     });
+
+    it('should show HIGH PERFORMER for posts with >100 engagement', () => {
+      const posts = [
+        createMockPost('1', 'Test content', {
+          engagement: { likes: 100, comments: 20 },
+        }),
+      ];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('HIGH PERFORMER');
+    });
+
+    it('should show Good for posts with 50-100 engagement', () => {
+      const posts = [
+        createMockPost('1', 'Test content', {
+          engagement: { likes: 35, comments: 10 }, // 35 + (10 * 2) = 55 total > 50
+        }),
+      ];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('Good');
+    });
+
+    it('should show Average for posts with 10-50 engagement', () => {
+      const posts = [
+        createMockPost('1', 'Test content', {
+          engagement: { likes: 15 },
+        }),
+      ];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('Average');
+    });
+
+    it('should include views in metrics when available', () => {
+      const posts = [
+        createMockPost('1', 'Test content', {
+          engagement: { views: 1000, likes: 50 },
+        }),
+      ];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('1000 views');
+    });
+
+    it('should detect emojis in content', () => {
+      const posts = [createMockPost('1', 'Test content with emoji 🚀')];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('uses emojis');
+    });
+
+    it('should detect no emojis in content', () => {
+      const posts = [createMockPost('1', 'Test content without emoji')];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('no emojis');
+    });
+
+    it('should detect question ending', () => {
+      const posts = [createMockPost('1', 'Is this a question?')];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('ends with question');
+    });
+
+    it('should detect statement ending', () => {
+      const posts = [createMockPost('1', 'This is a statement.')];
+      const result = formatPostsForPrompt(posts);
+
+      expect(result).toContain('statement ending');
+    });
   });
 
   describe('buildHistoricalPostsContext', () => {
