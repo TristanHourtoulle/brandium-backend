@@ -39,7 +39,9 @@ describe('Templates API Integration Tests', () => {
       .send({
         name: 'Test Profile',
         bio: 'Test bio',
-      });
+      })
+      .expect(201);
+
     profileId = profileRes.body.data.id;
 
     // Create test platform
@@ -50,7 +52,9 @@ describe('Templates API Integration Tests', () => {
         name: 'LinkedIn',
         styleGuidelines: 'Professional',
         maxLength: 3000,
-      });
+      })
+      .expect(201);
+
     platformId = platformRes.body.data.id;
   });
 
