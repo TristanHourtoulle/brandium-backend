@@ -80,9 +80,16 @@ router.get(
 );
 
 /**
+ * PUT /api/posts/:postId/versions/:versionId/select
  * PATCH /api/posts/:postId/versions/:versionId/select
  * Select a specific version as the current one
  */
+router.put(
+  '/:postId/versions/:versionId/select',
+  iterationValidators.selectVersion,
+  PostIterationController.selectVersion,
+);
+
 router.patch(
   '/:postId/versions/:versionId/select',
   iterationValidators.selectVersion,

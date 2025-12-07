@@ -28,9 +28,11 @@ router.post('/', platformValidators.create, PlatformController.create);
 
 /**
  * PUT /api/platforms/:id
+ * PATCH /api/platforms/:id
  * Update a platform
  */
 router.put('/:id', platformValidators.update, PlatformController.update);
+router.patch('/:id', platformValidators.update, PlatformController.update);
 
 /**
  * DELETE /api/platforms/:id

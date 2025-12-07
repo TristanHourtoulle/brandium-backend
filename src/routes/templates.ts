@@ -62,9 +62,16 @@ router.get(
 
 /**
  * PUT /api/templates/:id
+ * PATCH /api/templates/:id
  * Update a template
  */
 router.put(
+  '/:id',
+  templateValidators.update,
+  TemplateController.updateTemplate,
+);
+
+router.patch(
   '/:id',
   templateValidators.update,
   TemplateController.updateTemplate,

@@ -28,9 +28,11 @@ router.post('/', projectValidators.create, ProjectController.create);
 
 /**
  * PUT /api/projects/:id
+ * PATCH /api/projects/:id
  * Update a project
  */
 router.put('/:id', projectValidators.update, ProjectController.update);
+router.patch('/:id', projectValidators.update, ProjectController.update);
 
 /**
  * DELETE /api/projects/:id

@@ -29,9 +29,11 @@ router.post('/', profileValidators.create, ProfileController.create);
 
 /**
  * PUT /api/profiles/:id
+ * PATCH /api/profiles/:id
  * Update a profile
  */
 router.put('/:id', profileValidators.update, ProfileController.update);
+router.patch('/:id', profileValidators.update, ProfileController.update);
 
 /**
  * DELETE /api/profiles/:id
