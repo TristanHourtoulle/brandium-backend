@@ -15,10 +15,21 @@ router.use(authMiddleware);
 const iterationValidators = {
   iterate: [
     param('postId').isUUID().withMessage('Invalid post ID format'),
-    body('iterationPrompt')
+    // Support both new (type) and legacy (iterationPrompt/feedback) API
+    body('type')
+      .optional()
+      .isString()
+      .isIn(['shorter', 'stronger_hook', 'more_personal', 'add_data', 'simplify', 'custom'])
+      .withMessage('type must be one of: shorter, stronger_hook, more_personal, add_data, simplify, custom'),
+    body('feedback')
+      .optional()
       .trim()
-      .notEmpty()
-      .withMessage('iterationPrompt is required')
+      .isLength({ min: 3, max: 2000 })
+      .withMessage('feedback must be between 3 and 2000 characters'),
+    // Legacy support for iterationPrompt
+    body('iterationPrompt')
+      .optional()
+      .trim()
       .isLength({ min: 3, max: 2000 })
       .withMessage('iterationPrompt must be between 3 and 2000 characters'),
     body('maxTokens')
