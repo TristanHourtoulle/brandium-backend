@@ -7,6 +7,7 @@ import { Post } from './Post';
 import { PostVersion } from './PostVersion';
 import { HistoricalPost } from './HistoricalPost';
 import { PostIdea } from './PostIdea';
+import { Template } from './Template';
 
 // =====================================
 // Define Associations
@@ -183,6 +184,40 @@ Platform.hasMany(PostIdea, {
   onDelete: 'SET NULL',
 });
 
+// Template associations
+User.hasMany(Template, {
+  foreignKey: 'userId',
+  as: 'templates',
+  onDelete: 'CASCADE',
+});
+
+Template.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
+
+Template.belongsTo(Profile, {
+  foreignKey: 'profileId',
+  as: 'profile',
+});
+
+Template.belongsTo(Platform, {
+  foreignKey: 'platformId',
+  as: 'platform',
+});
+
+Profile.hasMany(Template, {
+  foreignKey: 'profileId',
+  as: 'templates',
+  onDelete: 'SET NULL',
+});
+
+Platform.hasMany(Template, {
+  foreignKey: 'platformId',
+  as: 'templates',
+  onDelete: 'SET NULL',
+});
+
 // =====================================
 // Export all models and sequelize instance
 // =====================================
@@ -196,6 +231,7 @@ const db = {
   PostVersion,
   HistoricalPost,
   PostIdea,
+  Template,
 };
 
 export {
@@ -208,5 +244,6 @@ export {
   PostVersion,
   HistoricalPost,
   PostIdea,
+  Template,
 };
 export default db;
