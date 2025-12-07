@@ -4,8 +4,10 @@ import {
   estimateTokenCount,
   validatePromptContext,
   validateIterationContext,
+  detectPostFormat,
   PromptContext,
   IterationPromptContext,
+  PostFormat,
 } from '../../src/utils/promptBuilder';
 
 describe('promptBuilder', () => {
@@ -476,6 +478,161 @@ describe('promptBuilder', () => {
       expect(prompt).toContain('ORIGINAL REQUEST');
       expect(prompt).toContain('Test idea only');
       expect(prompt).not.toContain('**Goal:**');
+    });
+  });
+
+  // =====================================
+  // detectPostFormat Tests
+  // =====================================
+  describe('detectPostFormat', () => {
+    describe('should detect STORY format', () => {
+      it('should detect story when goal mentions experience', () => {
+        expect(detectPostFormat('Share my experience', 'launching a startup')).toBe('story');
+      });
+
+      it('should detect story when rawIdea mentions failure', () => {
+        expect(detectPostFormat(null, 'My biggest failure and what I learned')).toBe('story');
+      });
+
+      it('should detect story when mentioning a journey', () => {
+        expect(detectPostFormat('Tell my journey', 'from developer to CTO')).toBe('story');
+      });
+
+      it('should detect story with French keywords', () => {
+        expect(detectPostFormat('Raconter mon expérience', 'test')).toBe('story');
+        expect(detectPostFormat(null, "Ce que j'ai appris en échouant")).toBe('story');
+      });
+
+      it('should detect story when mentioning transformation', () => {
+        expect(detectPostFormat('My transformation', 'how I changed my career')).toBe('story');
+      });
+    });
+
+    describe('should detect OPINION format', () => {
+      it('should detect opinion when goal mentions unpopular opinion', () => {
+        expect(detectPostFormat('Unpopular opinion about remote work', 'test idea')).toBe('opinion');
+      });
+
+      it('should detect opinion when rawIdea challenges common belief', () => {
+        expect(detectPostFormat(null, 'Stop following this common advice')).toBe('opinion');
+      });
+
+      it('should detect opinion with hot take', () => {
+        expect(detectPostFormat('Hot take on AI', 'why everyone is wrong')).toBe('opinion');
+      });
+
+      it('should detect opinion when busting myths', () => {
+        expect(detectPostFormat('Myth busting', 'the truth about productivity')).toBe('opinion');
+      });
+
+      it('should detect opinion with contrary stance', () => {
+        expect(detectPostFormat(null, 'Contrary to popular belief, this actually works')).toBe('opinion');
+      });
+    });
+
+    describe('should detect DEBATE format', () => {
+      it('should detect debate when asking for opinions', () => {
+        expect(detectPostFormat("What do you think about AI?", 'gathering thoughts')).toBe('debate');
+      });
+
+      it('should detect debate with team A vs team B framing', () => {
+        expect(detectPostFormat('Team remote vs team office', 'which is better')).toBe('debate');
+      });
+
+      it('should detect debate with discussion intent', () => {
+        expect(detectPostFormat('Start a discussion', 'about work-life balance')).toBe('debate');
+      });
+
+      it('should detect debate with French keywords', () => {
+        expect(detectPostFormat("Qu'en pensez-vous?", 'about this topic')).toBe('debate');
+        expect(detectPostFormat('Lancer un débat', 'sur le remote')).toBe('debate');
+      });
+
+      it('should detect debate with versus framing', () => {
+        expect(detectPostFormat(null, 'React vs Vue - which one wins?')).toBe('debate');
+      });
+    });
+
+    describe('should default to STORY', () => {
+      it('should default to story when no clear indicators', () => {
+        expect(detectPostFormat(null, 'Just sharing my thoughts')).toBe('story');
+      });
+
+      it('should default to story with empty goal', () => {
+        expect(detectPostFormat('', 'Some random idea')).toBe('story');
+      });
+
+      it('should default to story with generic content', () => {
+        expect(detectPostFormat('Post about tech', 'interesting stuff')).toBe('story');
+      });
+    });
+
+    describe('should handle edge cases', () => {
+      it('should handle null goal', () => {
+        expect(detectPostFormat(null, 'test idea')).toBe('story');
+      });
+
+      it('should handle undefined goal', () => {
+        expect(detectPostFormat(undefined, 'test idea')).toBe('story');
+      });
+
+      it('should be case insensitive', () => {
+        expect(detectPostFormat('UNPOPULAR OPINION', 'TEST')).toBe('opinion');
+        expect(detectPostFormat('DEBATE', 'DISCUSSION')).toBe('debate');
+      });
+
+      it('should prioritize opinion over debate when both present', () => {
+        // "opinion" is in both lists, but opinion keywords should win
+        expect(detectPostFormat('Unpopular opinion, what do you think?', 'test')).toBe('opinion');
+      });
+    });
+  });
+
+  // =====================================
+  // Format Detection in buildPrompt
+  // =====================================
+  describe('buildPrompt with format detection', () => {
+    it('should include STORY format guidance for story-type content', () => {
+      const context: PromptContext = {
+        rawIdea: 'My biggest failure as a developer',
+        goal: 'Share my experience',
+      };
+
+      const prompt = buildPrompt(context);
+
+      expect(prompt).toContain('DETECTED FORMAT: STORY');
+      expect(prompt).toContain('CONTEXT');
+      expect(prompt).toContain('PROBLEM / TENSION');
+      expect(prompt).toContain('LESSON / INSIGHT');
+    });
+
+    it('should include OPINION format guidance for contrarian content', () => {
+      const context: PromptContext = {
+        rawIdea: 'Why everyone is wrong about productivity',
+        goal: 'Unpopular opinion',
+      };
+
+      const prompt = buildPrompt(context);
+
+      expect(prompt).toContain('DETECTED FORMAT: CONTRARIAN OPINION');
+      expect(prompt).toContain('HOOK LINE');
+      expect(prompt).toContain('ARGUMENTATION');
+      expect(prompt).toContain('PERSONAL PROOF');
+    });
+
+    it('should include DEBATE format guidance for discussion content', () => {
+      const context: PromptContext = {
+        rawIdea: 'Remote work vs office - which is better?',
+        goal: 'Start a debate',
+      };
+
+      const prompt = buildPrompt(context);
+
+      expect(prompt).toContain('DETECTED FORMAT: DEBATE');
+      expect(prompt).toContain('POSITION');
+      expect(prompt).toContain('REASONING');
+      expect(prompt).toContain('EVIDENCE');
+      expect(prompt).toContain('CALL TO ACTION');
     });
   });
 
