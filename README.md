@@ -257,7 +257,23 @@ Platforms define **where you're posting** and platform-specific guidelines.
 }
 ```
 
-### 4. Generation Flow
+### 4. LinkedIn Post Formats
+
+Brandium automatically detects and applies the optimal format based on your goal:
+
+| Format | Use When | Structure |
+|--------|----------|-----------|
+| **Story** | Sharing experiences, lessons learned, failures | Context → Problem/Tension → Lesson → Question |
+| **Opinion** | Challenging beliefs, unpopular opinions, hot takes | Hook Line → Argumentation → Personal Proof → Validation |
+| **Debate** | Sparking discussion, gathering opinions | Position → Reasoning → Evidence → Call to Action |
+
+The format is automatically detected based on keywords in your `goal` and `rawIdea`. Examples:
+
+- "Share my failure" → **Story** format
+- "Unpopular opinion about..." → **Opinion** format
+- "What do you think about..." → **Debate** format
+
+### 5. Generation Flow
 
 When you generate a post, Brandium combines all context:
 
