@@ -3,6 +3,8 @@ import { Post, PostVersion, Profile, Project, Platform } from '../models';
 import { llmService, GenerateResponse } from './LLMService';
 import { buildIterationPrompt } from '../utils/promptBuilder';
 import { isPlatformSupported, OPENAI } from '../config/constants';
+import { IterationType } from '../types/iteration';
+import { buildSpecializedIterationPrompt } from '../utils/iterationPromptBuilder';
 
 /**
  * Parameters for creating an initial version
@@ -24,7 +26,8 @@ export interface CreateInitialVersionParams {
 export interface CreateIterationParams {
   postId: string;
   userId: string;
-  iterationPrompt: string;
+  iterationType?: IterationType;
+  iterationPrompt?: string;
   maxTokens?: number;
 }
 
@@ -91,7 +94,7 @@ export class PostVersionService {
     version: PostVersion;
     usage: GenerateResponse['usage'];
   }> {
-    const { postId, userId, iterationPrompt, maxTokens } = params;
+    const { postId, userId, iterationType = 'custom', iterationPrompt, maxTokens } = params;
 
     // Fetch post with all context
     const post = await Post.findOne({
@@ -121,7 +124,14 @@ export class PostVersionService {
     // Get the current/latest version text
     const previousText = post.currentVersion?.generatedText || post.generatedText;
 
-    // Build the iteration prompt
+    // Build the specialized iteration feedback based on type
+    const specializedFeedback = buildSpecializedIterationPrompt(
+      iterationType,
+      previousText,
+      iterationPrompt || undefined,
+    );
+
+    // Build the full iteration prompt with context
     const prompt = buildIterationPrompt({
       profile: post.profile,
       project: post.project,
@@ -129,7 +139,7 @@ export class PostVersionService {
       goal: post.goal,
       rawIdea: post.rawIdea,
       previousText,
-      iterationPrompt,
+      iterationPrompt: specializedFeedback,
     });
 
     // Generate new content with iteration-specific settings (lower temperature for precision)
@@ -143,11 +153,12 @@ export class PostVersionService {
     const newVersionNumber = post.totalVersions + 1;
 
     // Create new version and update post in a transaction
+    // Store the specialized feedback as the iterationPrompt for reference
     const version = await PostVersion.create({
       postId,
       versionNumber: newVersionNumber,
       generatedText: result.text,
-      iterationPrompt,
+      iterationPrompt: specializedFeedback,
       isSelected: true,
       promptTokens: result.usage.promptTokens,
       completionTokens: result.usage.completionTokens,
