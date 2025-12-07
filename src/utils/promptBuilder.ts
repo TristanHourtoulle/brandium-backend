@@ -103,9 +103,137 @@ function buildPlatformContext(platform: Platform | null | undefined): string {
 }
 
 /**
+ * Post format types for LinkedIn content
+ */
+export type PostFormat = 'story' | 'opinion' | 'debate';
+
+/**
+ * Detect the most appropriate post format based on goal and rawIdea
+ */
+export function detectPostFormat(goal: string | null | undefined, rawIdea: string): PostFormat {
+  const text = `${goal || ''} ${rawIdea}`.toLowerCase();
+
+  // Story format indicators
+  const storyKeywords = [
+    'expérience', 'experience', 'histoire', 'story', 'raconter', 'témoignage',
+    'échec', 'failure', 'fail', 'erreur', 'mistake', 'appris', 'learned',
+    'parcours', 'journey', 'transformation', 'behind', 'coulisses',
+    'vécu', 'moment', 'jour où', 'quand j\'ai', 'il y a',
+  ];
+
+  // Opinion format indicators
+  const opinionKeywords = [
+    'opinion', 'unpopular', 'hot take', 'contre', 'arrêtez', 'stop',
+    'mythe', 'myth', 'faux', 'false', 'vérité', 'truth', 'croire',
+    'tort', 'wrong', 'personne ne', 'nobody', 'contrairement', 'contrary',
+    'en fait', 'actually', 'problème avec', 'issue with',
+  ];
+
+  // Debate format indicators
+  const debateKeywords = [
+    'débat', 'debate', 'discussion', 'avis', 'qu\'en pensez', 'what do you think',
+    'team', 'côté', 'side', 'pour ou contre', 'pro con', 'opinion',
+    'question', 'dilemme', 'dilemma', 'choix', 'choice', 'versus', 'vs',
+  ];
+
+  const storyScore = storyKeywords.filter(kw => text.includes(kw)).length;
+  const opinionScore = opinionKeywords.filter(kw => text.includes(kw)).length;
+  const debateScore = debateKeywords.filter(kw => text.includes(kw)).length;
+
+  // Default to story if no clear winner (most versatile format)
+  if (opinionScore > storyScore && opinionScore >= debateScore) {
+    return 'opinion';
+  }
+  if (debateScore > storyScore && debateScore > opinionScore) {
+    return 'debate';
+  }
+  return 'story';
+}
+
+/**
+ * Build format-specific guidance
+ */
+function buildFormatGuidance(format: 'story' | 'opinion' | 'debate'): string {
+  switch (format) {
+    case 'story':
+      return `## 📖 DETECTED FORMAT: STORY
+
+You will tell a captivating story. Follow this structure:
+
+1. **CONTEXT** (2-3 lines)
+   → Set the scene quickly, be specific
+   → Example: "6 months ago, I made a decision that changed everything..."
+
+2. **PROBLEM / TENSION** (3-4 lines)
+   → The conflict, what went wrong, the challenge
+   → Create empathy, show vulnerability
+
+3. **LESSON / INSIGHT** (4-6 lines)
+   → What you learned, the transformation
+   → The "aha moment" the reader can apply
+
+4. **QUESTION** (1 line)
+   → Engage the reader on their experience
+   → "What mistake taught you the most?"
+
+`;
+
+    case 'opinion':
+      return `## 🎯 DETECTED FORMAT: CONTRARIAN OPINION
+
+You will challenge a common belief. Follow this structure:
+
+1. **HOOK LINE** (1-2 lines)
+   → Bold statement that stops the scroll
+   → "Stop doing [common advice]. It doesn't work."
+   → "Unpopular opinion: [controversial take]"
+
+2. **ARGUMENTATION** (2-3 short paragraphs)
+   → Explain WHY with logic
+   → Break down your technical reasoning
+
+3. **PERSONAL PROOF** (2-3 lines)
+   → Your concrete case, your experience
+   → "In my case..." / "I tested this for 6 months..."
+
+4. **VALIDATION** (1 line)
+   → Ask if the audience agrees
+   → "Do you agree or am I completely off?"
+
+`;
+
+    case 'debate':
+      return `## 💬 DETECTED FORMAT: DEBATE
+
+You will spark a discussion. Follow this structure:
+
+1. **POSITION** (2-3 lines)
+   → State your opinion clearly
+   → "I believe that [opinion]. Here's why."
+
+2. **REASONING** (3-4 lines)
+   → Your personal perspective
+   → What shaped your point of view
+
+3. **EVIDENCE** (2-3 lines)
+   → Data, quotes, resources
+   → Stats, expert opinions, concrete examples
+
+4. **CALL TO ACTION** (1-2 lines)
+   → Explicitly ask for their opinion
+   → "Where do you stand on this?"
+   → "Team A or Team B?"
+
+`;
+  }
+}
+
+/**
  * Build the main task section with LinkedIn-optimized instructions
  */
 function buildTaskSection(goal: string | null | undefined, rawIdea: string): string {
+  const detectedFormat = detectPostFormat(goal, rawIdea);
+
   let task = '# YOUR TASK\n\n';
 
   if (goal && goal.trim()) {
@@ -114,14 +242,10 @@ function buildTaskSection(goal: string | null | undefined, rawIdea: string): str
 
   task += `## Raw Idea to Transform\n${rawIdea.trim()}\n\n`;
 
-  task += '## STRICT OUTPUT REQUIREMENTS\n\n';
+  // Add format-specific guidance
+  task += buildFormatGuidance(detectedFormat);
 
-  task += '### Structure (follow this order):\n';
-  task += '1. **HOOK** (2-3 lines): Stop the scroll. Use question, stat, bold opinion, or story opener.\n';
-  task += '2. **BODY** (main content): Develop your point with short paragraphs. One idea = one paragraph.\n';
-  task += '3. **CTA** (last line): End with a question that invites comments.\n\n';
-
-  task += '### Formatting Rules:\n';
+  task += '## STRICT FORMATTING RULES\n\n';
   task += '- Line break after EVERY sentence (mobile readability)\n';
   task += '- Paragraphs of 1-3 lines maximum\n';
   task += '- Use → or - for lists, not bullets\n';
@@ -129,15 +253,16 @@ function buildTaskSection(goal: string | null | undefined, rawIdea: string): str
   task += '- Hashtags: 3-5 at the very end, separated by spaces\n';
   task += '- Length: 1200-1800 characters ideal\n\n';
 
-  task += '### Content Rules:\n';
-  task += '- First person narrative\n';
-  task += '- Conversational tone (reading age 6-9)\n';
+  task += '## CONTENT RULES\n\n';
+  task += '- Write in first person\n';
+  task += '- Conversational tone (reading level 6-9 years old)\n';
   task += '- NO corporate jargon or buzzwords\n';
   task += '- NO external links in the post body\n';
   task += '- DO NOT start with "I" - vary your openings\n\n';
 
-  task += '### Output:\n';
-  task += 'Write ONLY the final LinkedIn post. No explanations, no alternatives, no meta-commentary.\n';
+  task += '## OUTPUT\n';
+  task += 'Write ONLY the final LinkedIn post.\n';
+  task += 'No explanations, no alternatives, no meta-commentary.\n';
 
   return task;
 }
