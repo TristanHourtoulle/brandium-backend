@@ -41,14 +41,34 @@ router.get('/status', GenerateController.getStatus);
  * POST /api/generate/hooks
  * Generate hook suggestions for a LinkedIn post
  *
- * Request body:
+ * Supports two modes:
+ *
+ * Mode 1 - From raw idea (legacy):
  * - rawIdea (required): The raw idea for the post
- * - goal (optional): Goal of the post
- * - profileId (optional): UUID of the profile to use for context
  * - count (optional): Number of hooks to generate (1-10, default: 4)
+ *
+ * Mode 2 - From existing post (NEW):
+ * - postId (required): UUID of an existing post
+ * - variants (optional): Number of variants per hook type (1-3, default: 2)
+ *
+ * Common parameters:
+ * - goal (optional): Goal of the post/hooks
+ * - profileId (optional): UUID of the profile to use for context
  *
  * Response:
  * - hooks: Array of hook suggestions with type, text, and engagement score
+ * - totalHooks: Number of hooks generated
+ * - source: Either 'post' or 'rawIdea'
+ *
+ * Example (from post):
+ * ```json
+ * {
+ *   "postId": "uuid-here",
+ *   "variants": 3,
+ *   "profileId": "uuid-here"
+ * }
+ * ```
+ * Returns 6-9 hooks with auto-detected optimal types, sorted by engagement
  */
 router.post('/hooks', generateValidators.generateHooks, HookGenerationController.generateHooks);
 

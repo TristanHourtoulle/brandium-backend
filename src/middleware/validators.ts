@@ -267,9 +267,14 @@ export const generateValidators = {
 
   generateHooks: [
     body('rawIdea')
+      .optional()
       .trim()
       .isLength({ min: 1, max: 1000 })
-      .withMessage('rawIdea is required and must be less than 1000 characters'),
+      .withMessage('rawIdea must be less than 1000 characters'),
+    body('postId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid post ID'),
     body('goal')
       .optional()
       .trim()
@@ -283,6 +288,10 @@ export const generateValidators = {
       .optional()
       .isInt({ min: 1, max: 10 })
       .withMessage('count must be between 1 and 10'),
+    body('variants')
+      .optional()
+      .isInt({ min: 1, max: 3 })
+      .withMessage('variants must be between 1 and 3'),
     validate,
   ] as (ValidationChain | typeof validate)[],
 

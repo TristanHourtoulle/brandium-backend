@@ -83,6 +83,122 @@ export class HookGenerationService {
   }
 
   /**
+   * Generate hook suggestions from an existing post.
+   *
+   * This method analyzes the full post content and automatically:
+   * 1. Detects the post format/theme (story, stats, opinion, tutorial, etc.)
+   * 2. Generates multiple hook variants optimized for that format
+   * 3. Returns hooks sorted by estimated engagement
+   *
+   * @param postContent - The full generated post text
+   * @param goal - Optional goal for the hooks
+   * @param profile - Optional profile context
+   * @param variants - Number of variants per type (1-3, default: 2)
+   * @returns Array of Hook objects with auto-detected types
+   *
+   * @example
+   * ```typescript
+   * const hooks = await hookGenerationService.generateHooksFromPost({
+   *   postContent: "My 3 biggest lessons from failing my startup...",
+   *   variants: 3,
+   *   profile: myProfile
+   * });
+   * // Returns 6-9 hooks with auto-detected optimal types
+   * ```
+   */
+  async generateHooksFromPost(params: {
+    postContent: string;
+    goal?: string;
+    profile?: Partial<Profile>;
+    variants?: number;
+  }): Promise<Hook[]> {
+    const { postContent, goal, profile, variants = 2 } = params;
+
+    // Build specialized prompt for post-based generation
+    const prompt = this.buildPostBasedHookPrompt(postContent, goal, profile, variants);
+
+    // Generate hooks using LLM with higher token limit for variants
+    const result = await llmService.generate({
+      prompt,
+      maxTokens: 1200,
+      temperature: 0.85, // Slightly higher for more variety
+    });
+
+    // Parse hooks and sort by engagement
+    const hooks = this.parseHooksFromResponse(result.text);
+    return hooks.sort((a, b) => b.estimatedEngagement - a.estimatedEngagement);
+  }
+
+  /**
+   * Build prompt for generating hooks from existing post content.
+   *
+   * This prompt asks the AI to:
+   * 1. Analyze the post to detect its format/theme
+   * 2. Choose the most appropriate hook types for that format
+   * 3. Generate multiple variants for each chosen type
+   *
+   * @private
+   */
+  private buildPostBasedHookPrompt(
+    postContent: string,
+    goal?: string,
+    profile?: Partial<Profile>,
+    variants: number = 2,
+  ): string {
+    let prompt = '# TASK: Generate Better Hooks for Existing LinkedIn Post\n\n';
+
+    // Add context
+    if (profile) {
+      prompt += '## Profile Context\n';
+      if (profile.name) prompt += `Author: ${profile.name}\n`;
+      if (profile.bio) prompt += `Bio: ${profile.bio}\n`;
+      if (profile.toneTags && profile.toneTags.length > 0) {
+        prompt += `Tone: ${profile.toneTags.join(', ')}\n`;
+      }
+      prompt += '\n';
+    }
+
+    prompt += '## Existing Post Content\n';
+    prompt += '```\n';
+    prompt += postContent;
+    prompt += '\n```\n\n';
+
+    if (goal) {
+      prompt += `## Goal: ${goal}\n\n`;
+    }
+
+    prompt += '## Your Task\n\n';
+    prompt += 'Analyze the post above and:\n';
+    prompt += '1. **Detect the post format** (story, stats/data, opinion/hot-take, tutorial/how-to, case study, etc.)\n';
+    prompt += '2. **Choose the 2-3 most appropriate hook types** for this content from:\n';
+    prompt += '   - **QUESTION**: Curiosity-driven question\n';
+    prompt += '   - **STAT**: Surprising data point (can be from post or related)\n';
+    prompt += '   - **STORY**: Personal moment/anecdote\n';
+    prompt += '   - **BOLD_OPINION**: Contrarian or provocative statement\n\n';
+
+    prompt += `3. **Generate ${variants} variants** for each chosen hook type\n`;
+    prompt += '4. Make hooks MORE engaging than the current opening line\n\n';
+
+    prompt += '## Hook Quality Rules\n';
+    prompt += '- Must be scroll-stoppers - bold, surprising, or intriguing\n';
+    prompt += '- Should match the post theme but be more punchy than current opening\n';
+    prompt += '- Keep it 1-3 lines maximum\n';
+    prompt += '- First person if appropriate for the post\n';
+    prompt += `- Total hooks: ${variants * 3} (${variants} variants × 3 types)\n\n`;
+
+    prompt += '## Output Format\n\n';
+    prompt += 'For each hook, output EXACTLY:\n\n';
+    prompt += '[TYPE: question|stat|story|bold_opinion]\n';
+    prompt += '[HOOK: your hook text here]\n';
+    prompt += '[ENGAGEMENT: number 1-10]\n';
+    prompt += '---\n\n';
+
+    prompt += 'DO NOT add analysis, explanations, or extra text. Only output hooks in the format above.\n';
+
+    return prompt;
+  }
+
+  /**
    * Build the prompt for generating hooks.
    *
    * This method constructs a detailed prompt that:
@@ -218,8 +334,8 @@ export class HookGenerationService {
       }
     }
 
-    // If parsing failed or not enough hooks, generate fallback hooks
-    if (hooks.length < 4) {
+    // If parsing failed completely, generate fallback hooks
+    if (hooks.length === 0) {
       return this.generateFallbackHooks(response);
     }
 
