@@ -247,8 +247,157 @@ describe('HookGenerationService', () => {
         count: 4,
       });
 
-      // Should fall back because first hook is invalid (missing engagement)
-      expect(hooks).toHaveLength(4);
+      // Should only return valid hooks (first one missing engagement is skipped)
+      expect(hooks).toHaveLength(1);
+      expect(hooks[0]?.type).toBe('stat');
+      expect(hooks[0]?.estimatedEngagement).toBe(7);
+    });
+  });
+
+  describe('generateHooksFromPost', () => {
+    it('should generate hooks from post content', async () => {
+      const mockResponse = `
+[TYPE: story]
+[HOOK: 2 years ago, I lost 50K€ in 6 months...]
+[ENGAGEMENT: 9]
+---
+[TYPE: stat]
+[HOOK: 78% of founders make these 3 mistakes.]
+[ENGAGEMENT: 8]
+---
+[TYPE: story]
+[HOOK: My first hire was a disaster...]
+[ENGAGEMENT: 8]
+---
+[TYPE: bold_opinion]
+[HOOK: Stop listening to business advice.]
+[ENGAGEMENT: 9]
+---
+[TYPE: question]
+[HOOK: Are you making these 3 mistakes?]
+[ENGAGEMENT: 7]
+---
+[TYPE: bold_opinion]
+[HOOK: Stop glorifying failure.]
+[ENGAGEMENT: 8]
+---
+`;
+
+      mockGenerate.mockResolvedValueOnce({
+        text: mockResponse,
+        usage: { promptTokens: 150, completionTokens: 80, totalTokens: 230 },
+      });
+
+      const hooks = await service.generateHooksFromPost({
+        postContent: 'The 3 mistakes that cost me 50K€ as a founder...',
+        variants: 2,
+      });
+
+      expect(hooks).toHaveLength(6);
+      // Should be sorted by engagement (highest first)
+      expect(hooks[0]?.estimatedEngagement).toBeGreaterThanOrEqual(hooks[1]?.estimatedEngagement || 0);
+      expect(hooks[0]?.estimatedEngagement).toBe(9);
+    });
+
+    it('should use correct LLM parameters for post-based generation', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: story]\n[HOOK: Test]\n[ENGAGEMENT: 8]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'Test post content',
+        variants: 2,
+      });
+
+      expect(mockGenerate).toHaveBeenCalledWith({
+        prompt: expect.any(String),
+        maxTokens: 1200,
+        temperature: 0.85,
+      });
+    });
+
+    it('should include post content in prompt', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: question]\n[HOOK: Test]\n[ENGAGEMENT: 7]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'My unique post content here',
+        variants: 2,
+      });
+
+      const callArgs = mockGenerate.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('My unique post content here');
+    });
+
+    it('should include profile context in post-based prompt', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: story]\n[HOOK: Test]\n[ENGAGEMENT: 8]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'Test post',
+        profile: {
+          name: 'Jane Smith',
+          bio: 'Entrepreneur',
+          toneTags: ['inspiring', 'authentic'],
+        },
+        variants: 2,
+      });
+
+      const callArgs = mockGenerate.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Jane Smith');
+      expect(callArgs.prompt).toContain('Entrepreneur');
+      expect(callArgs.prompt).toContain('inspiring');
+    });
+
+    it('should handle goal in post-based generation', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: question]\n[HOOK: Test]\n[ENGAGEMENT: 7]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'Test post',
+        goal: 'Drive engagement',
+        variants: 2,
+      });
+
+      const callArgs = mockGenerate.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Drive engagement');
+    });
+
+    it('should use default variants value of 2', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: story]\n[HOOK: Test]\n[ENGAGEMENT: 8]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'Test post',
+      });
+
+      const callArgs = mockGenerate.mock.calls[0][0];
+      // Prompt should mention 2 variants (default)
+      expect(callArgs.prompt).toContain('2 variants');
+    });
+
+    it('should respect custom variants parameter', async () => {
+      mockGenerate.mockResolvedValueOnce({
+        text: '[TYPE: story]\n[HOOK: Test]\n[ENGAGEMENT: 8]\n---',
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      await service.generateHooksFromPost({
+        postContent: 'Test post',
+        variants: 3,
+      });
+
+      const callArgs = mockGenerate.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('3 variants');
     });
   });
 });
