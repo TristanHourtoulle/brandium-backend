@@ -103,9 +103,137 @@ function buildPlatformContext(platform: Platform | null | undefined): string {
 }
 
 /**
- * Build the main task section
+ * Post format types for LinkedIn content
+ */
+export type PostFormat = 'story' | 'opinion' | 'debate';
+
+/**
+ * Detect the most appropriate post format based on goal and rawIdea
+ */
+export function detectPostFormat(goal: string | null | undefined, rawIdea: string): PostFormat {
+  const text = `${goal || ''} ${rawIdea}`.toLowerCase();
+
+  // Story format indicators
+  const storyKeywords = [
+    'expérience', 'experience', 'histoire', 'story', 'raconter', 'témoignage',
+    'échec', 'failure', 'fail', 'erreur', 'mistake', 'appris', 'learned',
+    'parcours', 'journey', 'transformation', 'behind', 'coulisses',
+    'vécu', 'moment', 'jour où', 'quand j\'ai', 'il y a',
+  ];
+
+  // Opinion format indicators
+  const opinionKeywords = [
+    'opinion', 'unpopular', 'hot take', 'contre', 'arrêtez', 'stop',
+    'mythe', 'myth', 'faux', 'false', 'vérité', 'truth', 'croire',
+    'tort', 'wrong', 'personne ne', 'nobody', 'contrairement', 'contrary',
+    'en fait', 'actually', 'problème avec', 'issue with',
+  ];
+
+  // Debate format indicators
+  const debateKeywords = [
+    'débat', 'debate', 'discussion', 'avis', 'qu\'en pensez', 'what do you think',
+    'team', 'côté', 'side', 'pour ou contre', 'pro con', 'opinion',
+    'question', 'dilemme', 'dilemma', 'choix', 'choice', 'versus', 'vs',
+  ];
+
+  const storyScore = storyKeywords.filter(kw => text.includes(kw)).length;
+  const opinionScore = opinionKeywords.filter(kw => text.includes(kw)).length;
+  const debateScore = debateKeywords.filter(kw => text.includes(kw)).length;
+
+  // Default to story if no clear winner (most versatile format)
+  if (opinionScore > storyScore && opinionScore >= debateScore) {
+    return 'opinion';
+  }
+  if (debateScore > storyScore && debateScore > opinionScore) {
+    return 'debate';
+  }
+  return 'story';
+}
+
+/**
+ * Build format-specific guidance
+ */
+function buildFormatGuidance(format: 'story' | 'opinion' | 'debate'): string {
+  switch (format) {
+    case 'story':
+      return `## 📖 DETECTED FORMAT: STORY
+
+You will tell a captivating story. Follow this structure:
+
+1. **CONTEXT** (2-3 lines)
+   → Set the scene quickly, be specific
+   → Example: "6 months ago, I made a decision that changed everything..."
+
+2. **PROBLEM / TENSION** (3-4 lines)
+   → The conflict, what went wrong, the challenge
+   → Create empathy, show vulnerability
+
+3. **LESSON / INSIGHT** (4-6 lines)
+   → What you learned, the transformation
+   → The "aha moment" the reader can apply
+
+4. **QUESTION** (1 line)
+   → Engage the reader on their experience
+   → "What mistake taught you the most?"
+
+`;
+
+    case 'opinion':
+      return `## 🎯 DETECTED FORMAT: CONTRARIAN OPINION
+
+You will challenge a common belief. Follow this structure:
+
+1. **HOOK LINE** (1-2 lines)
+   → Bold statement that stops the scroll
+   → "Stop doing [common advice]. It doesn't work."
+   → "Unpopular opinion: [controversial take]"
+
+2. **ARGUMENTATION** (2-3 short paragraphs)
+   → Explain WHY with logic
+   → Break down your technical reasoning
+
+3. **PERSONAL PROOF** (2-3 lines)
+   → Your concrete case, your experience
+   → "In my case..." / "I tested this for 6 months..."
+
+4. **VALIDATION** (1 line)
+   → Ask if the audience agrees
+   → "Do you agree or am I completely off?"
+
+`;
+
+    case 'debate':
+      return `## 💬 DETECTED FORMAT: DEBATE
+
+You will spark a discussion. Follow this structure:
+
+1. **POSITION** (2-3 lines)
+   → State your opinion clearly
+   → "I believe that [opinion]. Here's why."
+
+2. **REASONING** (3-4 lines)
+   → Your personal perspective
+   → What shaped your point of view
+
+3. **EVIDENCE** (2-3 lines)
+   → Data, quotes, resources
+   → Stats, expert opinions, concrete examples
+
+4. **CALL TO ACTION** (1-2 lines)
+   → Explicitly ask for their opinion
+   → "Where do you stand on this?"
+   → "Team A or Team B?"
+
+`;
+  }
+}
+
+/**
+ * Build the main task section with LinkedIn-optimized instructions
  */
 function buildTaskSection(goal: string | null | undefined, rawIdea: string): string {
+  const detectedFormat = detectPostFormat(goal, rawIdea);
+
   let task = '# YOUR TASK\n\n';
 
   if (goal && goal.trim()) {
@@ -114,13 +242,27 @@ function buildTaskSection(goal: string | null | undefined, rawIdea: string): str
 
   task += `## Raw Idea to Transform\n${rawIdea.trim()}\n\n`;
 
-  task += '## Instructions\n';
-  task += '1. Transform the raw idea into an engaging social media post.\n';
-  task += '2. Apply the profile\'s tone and style if provided.\n';
-  task += '3. Consider the project\'s audience and key messages if provided.\n';
-  task += '4. Follow the platform\'s guidelines and character limits if provided.\n';
-  task += '5. Make the post authentic, engaging, and actionable.\n';
-  task += '6. Output ONLY the final post text, nothing else.\n';
+  // Add format-specific guidance
+  task += buildFormatGuidance(detectedFormat);
+
+  task += '## STRICT FORMATTING RULES\n\n';
+  task += '- Line break after EVERY sentence (mobile readability)\n';
+  task += '- Paragraphs of 1-3 lines maximum\n';
+  task += '- Use → or - for lists, not bullets\n';
+  task += '- Emojis: 0-3 max, only at line starts or before CTA\n';
+  task += '- Hashtags: 3-5 at the very end, separated by spaces\n';
+  task += '- Length: 1200-1800 characters ideal\n\n';
+
+  task += '## CONTENT RULES\n\n';
+  task += '- Write in first person\n';
+  task += '- Conversational tone (reading level 6-9 years old)\n';
+  task += '- NO corporate jargon or buzzwords\n';
+  task += '- NO external links in the post body\n';
+  task += '- DO NOT start with "I" - vary your openings\n\n';
+
+  task += '## OUTPUT\n';
+  task += 'Write ONLY the final LinkedIn post.\n';
+  task += 'No explanations, no alternatives, no meta-commentary.\n';
 
   return task;
 }
@@ -182,10 +324,10 @@ export function validatePromptContext(context: PromptContext): { valid: boolean;
 }
 
 /**
- * Build the iteration task section
+ * Build the iteration task section with surgical precision rules
  */
 function buildIterationTaskSection(previousText: string, iterationPrompt: string): string {
-  let task = '# PREVIOUS VERSION\n\n';
+  let task = '# PREVIOUS VERSION (DO NOT REWRITE ENTIRELY)\n\n';
   task += '```\n';
   task += previousText.trim();
   task += '\n```\n\n';
@@ -194,14 +336,25 @@ function buildIterationTaskSection(previousText: string, iterationPrompt: string
   task += iterationPrompt.trim();
   task += '\n\n';
 
-  task += '# YOUR TASK\n\n';
-  task += 'Modify the previous version according to the modification request while:\n';
-  task += '1. Maintaining the original context and constraints.\n';
-  task += '2. Preserving what works well in the previous version.\n';
-  task += '3. Making only the requested changes.\n';
-  task += '4. Keeping the same tone and style unless specifically asked to change it.\n';
-  task += '5. Respecting platform character limits if specified.\n';
-  task += '6. Output ONLY the final modified post text, nothing else.\n';
+  task += '# STRICT MODIFICATION RULES\n\n';
+
+  task += '**CRITICAL: This is a SURGICAL edit, NOT a rewrite.**\n\n';
+
+  task += '## Before modifying, identify:\n';
+  task += '1. The EXACT sentences/words that need to change\n';
+  task += '2. Whether the request is about: content, tone, structure, or length\n\n';
+
+  task += '## Rules:\n';
+  task += '1. **KEEP** all parts NOT mentioned in the request **WORD FOR WORD**\n';
+  task += '2. **ONLY** modify what is explicitly requested\n';
+  task += '3. If the request is ambiguous, make the **MINIMAL** change possible\n';
+  task += '4. **DO NOT** "improve", "enhance", or "fix" other parts\n';
+  task += '5. **DO NOT** change the hook unless specifically asked\n';
+  task += '6. **DO NOT** change the CTA unless specifically asked\n';
+  task += '7. **PRESERVE** emoji usage, line breaks, and formatting\n\n';
+
+  task += '## Output:\n';
+  task += 'Output ONLY the modified post. If you changed more than requested, you FAILED.\n';
 
   return task;
 }

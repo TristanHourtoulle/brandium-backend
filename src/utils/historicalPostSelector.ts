@@ -1,4 +1,5 @@
 import { HistoricalPost } from '../models/HistoricalPost';
+import { LINKEDIN_GUIDELINES } from '../config/constants';
 
 /**
  * Options for selecting historical posts
@@ -74,7 +75,7 @@ function calculateRecencyScore(publishedAt: Date | null): number {
 }
 
 /**
- * Calculate overall score for a post
+ * Calculate overall score for a post (optimized for LinkedIn)
  */
 function calculatePostScore(
   post: HistoricalPost,
@@ -102,13 +103,28 @@ function calculatePostScore(
     score += 50; // Significant bonus for matching platform
   }
 
-  // Content quality bonus (based on length - not too short, not too long)
+  // Content quality bonus (optimized for LinkedIn ideal length: 1200-1800 chars)
   const contentLength = post.content?.length || 0;
-  if (contentLength >= 100 && contentLength <= 1000) {
-    score += 20; // Ideal length bonus
-  } else if (contentLength < 50) {
-    score -= 20; // Penalty for very short posts
+  if (
+    contentLength >= LINKEDIN_GUIDELINES.OPTIMAL_MIN_LENGTH &&
+    contentLength <= LINKEDIN_GUIDELINES.OPTIMAL_MAX_LENGTH
+  ) {
+    score += 30; // Ideal LinkedIn length bonus
+  } else if (contentLength >= 800 && contentLength <= 2000) {
+    score += 15; // Good length
+  } else if (contentLength < 300) {
+    score -= 30; // Too short for LinkedIn
   }
+
+  // High performer bonus
+  if (totalEngagement > 50) {
+    score += 25;
+  }
+
+  // Future: Favorite posts bonus (prepared for metadata.isFavorite)
+  // if (post.metadata?.isFavorite) {
+  //   score += 200; // Massive bonus for favorites
+  // }
 
   return { post, score, matchesPlatform };
 }
@@ -157,7 +173,17 @@ export function selectRelevantPosts(
 }
 
 /**
+ * Check if content contains emojis
+ */
+function hasEmojis(content: string): boolean {
+  // Match common emoji ranges
+  const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
+  return emojiRegex.test(content);
+}
+
+/**
  * Format historical posts for inclusion in the generation prompt
+ * Includes style analysis hints for better AI understanding
  */
 export function formatPostsForPrompt(posts: HistoricalPost[]): string {
   if (posts.length === 0) {
@@ -179,18 +205,31 @@ export function formatPostsForPrompt(posts: HistoricalPost[]): string {
 
       formatted += '\n';
 
-      // Add engagement if significant
+      // Add engagement with performance indicator
       const engagement = post.engagement || {};
       const totalEngagement = calculateTotalEngagement(post);
       if (totalEngagement > 10) {
         const metrics: string[] = [];
+        if (engagement.views) metrics.push(`${engagement.views} views`);
         if (engagement.likes) metrics.push(`${engagement.likes} likes`);
         if (engagement.comments) metrics.push(`${engagement.comments} comments`);
         if (engagement.shares) metrics.push(`${engagement.shares} shares`);
         if (metrics.length > 0) {
-          formatted += `_Performance: ${metrics.join(', ')}_\n`;
+          // Add performance indicator
+          let performanceLevel = 'Average';
+          if (totalEngagement > 100) performanceLevel = 'HIGH PERFORMER';
+          else if (totalEngagement > 50) performanceLevel = 'Good';
+
+          formatted += `_${performanceLevel}: ${metrics.join(', ')}_\n`;
         }
       }
+
+      // Add style analysis hints
+      const contentLength = post.content?.length || 0;
+      const contentHasEmojis = hasEmojis(post.content);
+      const endsWithQuestion = post.content.trim().endsWith('?');
+
+      formatted += `_Style: ${contentLength} chars, ${contentHasEmojis ? 'uses emojis' : 'no emojis'}, ${endsWithQuestion ? 'ends with question' : 'statement ending'}_\n`;
 
       // Add content
       formatted += '\n```\n';
@@ -206,20 +245,30 @@ export function formatPostsForPrompt(posts: HistoricalPost[]): string {
 
 /**
  * Build the historical posts section for the prompt
+ * With detailed instructions on how to mimic the author's style
  */
 export function buildHistoricalPostsContext(posts: HistoricalPost[]): string {
   if (posts.length === 0) {
     return '';
   }
 
-  let context = '# WRITING STYLE EXAMPLES\n\n';
-  context +=
-    'The following are real examples of the author\'s previous posts. ';
-  context += 'Use these to understand and match their authentic writing style:\n\n';
+  let context = '# WRITING STYLE EXAMPLES (CRITICAL - MIMIC THIS STYLE)\n\n';
+
+  context += "These are the author's REAL past posts. Your job is to MATCH this style exactly:\n\n";
+
+  context += '**ANALYZE AND COPY:**\n';
+  context += '- How do they start their posts? (Hook style)\n';
+  context += '- Sentence length: short? medium? mixed?\n';
+  context += '- Do they use emojis? Where and how many?\n';
+  context += '- How do they end? (Question? Statement? CTA?)\n';
+  context += '- Vocabulary level: Simple or technical?\n';
+  context += '- Personal stories or more abstract?\n\n';
+
   context += formatPostsForPrompt(posts);
   context += '\n\n';
-  context += '**Note:** Match the tone, structure, and voice from these examples ';
-  context += 'while creating fresh, original content for the new post.';
+
+  context += '**IMPORTANT:** If the examples above use emojis, use them similarly. ';
+  context += "If they don't, DON'T add any. Match their exact style.";
 
   return context;
 }

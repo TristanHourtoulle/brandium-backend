@@ -42,26 +42,67 @@ npx sequelize-cli seed:generate --name <name>
 
 ## Architecture
 
-```
+```text
 src/                        # TypeScript source files
 ├── app.ts                  # Express server, middleware setup, route mounting
 ├── config/
 │   ├── database.ts         # Sequelize config (dev/test/prod environments)
 │   └── constants.ts        # App constants
-├── controllers/            # Route handlers (Auth, Profile, Project, Platform, Post, Generate)
+├── controllers/            # Route handlers
+│   ├── AuthController.ts
+│   ├── GenerateController.ts        # Post generation + variants
+│   ├── HookGenerationController.ts  # Hook suggestions (NEW)
+│   ├── TemplateController.ts        # Template CRUD (NEW)
+│   ├── PostIterationController.ts   # Specialized iterations
+│   └── ...
 ├── middleware/             # authMiddleware (JWT verification), validation, error handling
 ├── models/                 # Sequelize models with TypeScript interfaces
+│   ├── Template.ts         # (NEW)
+│   ├── PostVersion.ts      # Enhanced with iterationType, approach, format
+│   ├── PostIdea.ts         # (NEW)
+│   └── ...
 ├── routes/                 # API route definitions
-├── services/               # Business logic (LLMService for OpenAI)
-├── utils/                  # Helpers (promptBuilder for AI context construction)
+│   ├── templates.ts        # (NEW)
+│   ├── generate.ts         # Enhanced with hooks endpoint
+│   └── ...
+├── services/               # Business logic
+│   ├── LLMService.ts       # OpenAI integration
+│   ├── HookGenerationService.ts     # (NEW)
+│   ├── TemplateService.ts           # (NEW)
+│   ├── VariantGenerationService.ts  # (NEW)
+│   └── ...
+├── utils/                  # Helpers
+│   ├── promptBuilder.ts             # AI context construction
+│   ├── iterationPromptBuilder.ts    # (NEW) Specialized iteration prompts
+│   └── ...
 └── types/                  # Custom TypeScript type definitions
+    ├── hook.ts             # (NEW)
+    ├── iteration.ts        # (NEW)
+    ├── template.ts         # (NEW)
+    ├── variant.ts          # (NEW)
+    └── ...
 
 dist/                       # Compiled JavaScript (git ignored)
 migrations/                 # Sequelize migrations (JavaScript - CLI requirement)
+├── 20251207140538-create-templates.js  # (NEW)
+└── ...
 seeders/                    # Database seeders (JavaScript - CLI requirement)
+├── 20251207141502-default-templates.js # (NEW)
+└── ...
 tests/
 ├── unit/                   # Unit tests
+│   ├── hookGenerationService.test.ts    # (NEW)
+│   ├── templateService.test.ts          # (NEW)
+│   ├── iterationPromptBuilder.test.ts   # (NEW)
+│   ├── variantGenerationService.test.ts # (NEW)
+│   └── ...
 └── integration/            # API tests
+    ├── hookGeneration.test.ts           # (NEW)
+    ├── templates.test.ts                # (NEW)
+    ├── templateEdgeCases.test.ts        # (NEW)
+    ├── specializedIterations.test.ts    # (NEW)
+    ├── variantGeneration.test.ts        # (NEW)
+    └── ...
 ```
 
 ## Data Models
@@ -71,16 +112,30 @@ tests/
 - **Project**: name, description, audience, keyMessages
 - **Platform**: name, styleGuidelines, maxLength
 - **Post**: Links profile/project/platform + goal, rawIdea, generatedText
+- **PostVersion**: versionNumber, generatedText, iterationPrompt, iterationType, approach, format, isSelected, promptTokens, completionTokens
+- **PostIdea**: title, description, suggestedGoal, relevanceScore, tags (JSONB), generationContext (JSONB), isUsed, usedAt
+- **Template**: name, description, category, content, variables (JSONB), exampleVariables (JSONB), tags (JSONB), isSystem, isPublic, usageCount
+- **HistoricalPost**: content, publishedAt, externalUrl, engagement (JSONB), metadata (JSONB)
 
 All models use UUID primary keys and belong to User via `userId` foreign key.
 
 ## API Structure
 
 All endpoints under `/api/` are protected by JWT except:
+
 - `GET /health` - Health check
 - `POST /api/auth/register` and `POST /api/auth/login`
 
-Generation endpoint `POST /api/generate` takes profileId, projectId, platformId, goal, rawIdea and returns AI-generated post content.
+### Main Endpoints
+
+- `POST /api/generate` - Generate post (supports variants parameter)
+- `POST /api/generate/hooks` - Generate hook suggestions
+- `POST /api/generate/from-template` - Generate from template
+- `POST /api/posts/:id/iterate` - Create iteration (supports specialized types: shorter, stronger_hook, more_personal, add_data, simplify, custom)
+- `POST /api/ideas/generate` - Generate post ideas
+- Template CRUD: `GET/POST/PUT/DELETE /api/templates`
+- Template actions: `POST /api/templates/:id/render`, `POST /api/templates/:id/duplicate`
+- Template discovery: `GET /api/templates/suggestions`, `POST /api/templates/find-similar`, `GET /api/templates/statistics`
 
 ## Code Principles
 

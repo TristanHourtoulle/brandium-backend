@@ -41,9 +41,11 @@ router.post('/bulk', historicalPostValidators.bulkCreate, HistoricalPostControll
 router.get('/:id', historicalPostValidators.getOne, HistoricalPostController.getById);
 
 /**
+ * PUT /api/profiles/:profileId/historical-posts/:id
  * PATCH /api/profiles/:profileId/historical-posts/:id
  * Update a historical post
  */
+router.put('/:id', historicalPostValidators.update, HistoricalPostController.update);
 router.patch('/:id', historicalPostValidators.update, HistoricalPostController.update);
 
 /**

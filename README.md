@@ -101,6 +101,9 @@ flowchart TB
 | **Multi-Platform** | Configure LinkedIn, X, TikTok, etc. with style guidelines |
 | **AI Generation** | Generate posts using OpenAI GPT-4.1-mini |
 | **Post Iterations** | Refine posts with AI-powered iterations and version history |
+| **Specialized Iterations** | 6 one-click iteration types (shorter, stronger_hook, more_personal, etc.) |
+| **A/B Variants** | Generate 2-4 variants with different approaches (direct, storytelling, data-driven, emotional) |
+| **Hook Suggestions** | Generate 4 engaging opening hooks (question, stat, story, bold_opinion) |
 | **Historical Posts** | Import past posts for AI learning |
 | **AI Analysis** | Automatically analyze writing style from your content |
 | **AI Ideas** | Generate creative post ideas based on your context |
@@ -257,7 +260,23 @@ Platforms define **where you're posting** and platform-specific guidelines.
 }
 ```
 
-### 4. Generation Flow
+### 4. LinkedIn Post Formats
+
+Brandium automatically detects and applies the optimal format based on your goal:
+
+| Format | Use When | Structure |
+|--------|----------|-----------|
+| **Story** | Sharing experiences, lessons learned, failures | Context → Problem/Tension → Lesson → Question |
+| **Opinion** | Challenging beliefs, unpopular opinions, hot takes | Hook Line → Argumentation → Personal Proof → Validation |
+| **Debate** | Sparking discussion, gathering opinions | Position → Reasoning → Evidence → Call to Action |
+
+The format is automatically detected based on keywords in your `goal` and `rawIdea`. Examples:
+
+- "Share my failure" → **Story** format
+- "Unpopular opinion about..." → **Opinion** format
+- "What do you think about..." → **Debate** format
+
+### 5. Generation Flow
 
 When you generate a post, Brandium combines all context:
 
@@ -471,18 +490,86 @@ Each profile maintains its own tone, rules, and historical posts.
 
 ```mermaid
 flowchart LR
-    V1[Version 1<br/>Initial] -->|Feedback| V2[Version 2<br/>More casual]
-    V2 -->|Feedback| V3[Version 3<br/>Added story]
-    V3 -->|Select| FINAL[Selected Version]
+    V1[Version 1<br/>Initial] -->|shorter| V2[Version 2<br/>Concise]
+    V2 -->|stronger_hook| V3[Version 3<br/>Better Hook]
+    V3 -->|add_data| V4[Version 4<br/>With Stats]
+    V4 -->|Select| FINAL[Selected Version]
 
     style FINAL fill:#90EE90
 ```
 
-- Generate initial post (v1)
-- Provide feedback to iterate
-- AI creates new version while keeping context
-- Compare versions and select the best
-- Track token usage per version
+#### Specialized Iteration Types
+
+Brandium provides **6 specialized iteration types** for quick, one-click post refinements:
+
+| Type | What It Does | Example |
+|------|--------------|---------|
+| `shorter` | Reduces length by ~30% while keeping core message | "This 500-word post → concise 350-word version" |
+| `stronger_hook` | Rewrites opening 2-3 lines to grab attention | "Here's a tip... → Stop doing X. Here's why." |
+| `more_personal` | Adds authentic anecdote or story | "Generic advice → Last week, I made this mistake..." |
+| `add_data` | Includes statistics or concrete metrics | "X is important → 73% of professionals agree X is critical" |
+| `simplify` | Reduces jargon, shortens sentences | "Leverage synergies → Work together better" |
+| `custom` | Apply your own specific feedback | Any custom change you specify |
+
+**How It Works:**
+
+1. Generate initial post (v1)
+2. Use specialized iteration type OR provide custom feedback
+3. AI creates new version with surgical precision
+4. Compare versions side-by-side
+5. Select the best version
+6. Track token usage per iteration
+
+Each iteration type uses carefully crafted prompts to ensure **minimal changes** - only what you requested gets modified, preserving everything else.
+
+### A/B Variant Generation
+
+Generate multiple versions of the same post with different writing approaches to test what resonates best with your audience:
+
+```mermaid
+flowchart LR
+    IDEA[Raw Idea] --> V1[Direct<br/>Temperature: 0.5]
+    IDEA --> V2[Storytelling<br/>Temperature: 0.7]
+    IDEA --> V3[Data-Driven<br/>Temperature: 0.6]
+    IDEA --> V4[Emotional<br/>Temperature: 0.8]
+
+    V1 --> TEST[A/B Test]
+    V2 --> TEST
+    V3 --> TEST
+    V4 --> TEST
+
+    TEST --> BEST[Best Performer]
+
+    style BEST fill:#90EE90
+```
+
+**4 Variant Approaches:**
+
+| Approach | Style | Temperature | When to Use |
+|----------|-------|-------------|-------------|
+| **Direct** | Straight to the point, no fluff | 0.5 | Announcements, updates, clear communication |
+| **Storytelling** | Personal narrative with emotion | 0.7 | Sharing experiences, building connection |
+| **Data-Driven** | Facts, stats, logical arguments | 0.6 | Educational content, credibility |
+| **Emotional** | Empathy and human connection | 0.8 | Inspiration, motivation, community building |
+
+**How It Works:**
+
+1. Submit one `rawIdea` with `variants: 2-4` parameter
+2. AI generates multiple versions using different approaches **in parallel**
+3. Each variant uses approach-specific prompts and temperature settings
+4. All variants detect the same post format (Story/Opinion/Debate)
+5. Compare side-by-side and choose the best performer
+6. Each variant is saved as a separate post for independent tracking
+
+**Example Use Case:**
+
+You want to share a lesson learned. Generate 3 variants:
+
+- **Direct variant**: "Here's what I learned after 5 years in tech: X, Y, Z."
+- **Storytelling variant**: "Five years ago, I made a mistake that changed everything..."
+- **Data-driven variant**: "According to a 2024 study, 73% of professionals say..."
+
+Test all three and track which gets better engagement!
 
 ### AI Learning from Historical Posts
 
@@ -587,7 +674,59 @@ All endpoints under `/api/` require JWT authentication except register and login
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/generate` | Generate post via AI |
+| `POST` | `/api/generate/hooks` | Generate hook suggestions for a post |
 | `GET` | `/api/generate/status` | Check rate limit status |
+
+**Request body for `POST /api/generate/hooks`:**
+```json
+{
+  "rawIdea": "Share lessons about entrepreneurship",
+  "goal": "Inspire and educate (optional)",
+  "profileId": "uuid (optional)",
+  "count": 4
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Hooks generated successfully",
+  "data": {
+    "hooks": [
+      {
+        "type": "question",
+        "text": "Ever wonder why most startups fail in the first year?",
+        "estimatedEngagement": 9
+      },
+      {
+        "type": "stat",
+        "text": "83% of entrepreneurs say their biggest mistake was waiting too long.",
+        "estimatedEngagement": 8
+      },
+      {
+        "type": "story",
+        "text": "Three months ago, I almost gave up on my business...",
+        "estimatedEngagement": 9
+      },
+      {
+        "type": "bold_opinion",
+        "text": "Stop following your passion. Follow the money instead.",
+        "estimatedEngagement": 8
+      }
+    ],
+    "totalHooks": 4
+  }
+}
+```
+
+**Hook Types:**
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `question` | Provocative or relatable question | "Ever wonder why 90% of developers burn out before age 40?" |
+| `stat` | Surprising statistic or data point | "73% of professionals say they learned more from failures..." |
+| `story` | Personal story or moment | "Last Tuesday, I made a mistake that cost me 3 clients..." |
+| `bold_opinion` | Controversial or contrarian statement | "Stop doing daily standups. They're killing your productivity." |
 
 ### Ideas
 
@@ -622,11 +761,180 @@ All endpoints under `/api/` require JWT authentication except register and login
   "projectId": "uuid",
   "platformId": "uuid",
   "goal": "Announce new feature",
-  "rawIdea": "Just launched adaptive quizzes!"
+  "rawIdea": "Just launched adaptive quizzes!",
+  "variants": 1
 }
 ```
 
 > **Note:** Only `rawIdea` is required. All other fields are optional but recommended for better results.
+
+**A/B Variant Generation:**
+
+By default, `/api/generate` creates a single post (`variants: 1`). To generate multiple versions with different approaches, specify `variants: 2-4`:
+
+```json
+{
+  "rawIdea": "Share insights about remote work",
+  "goal": "Educate",
+  "variants": 3
+}
+```
+
+**Response (multiple variants):**
+```json
+{
+  "message": "3 post variants generated successfully",
+  "data": {
+    "variants": [
+      {
+        "postId": "uuid1",
+        "versionId": "uuid1",
+        "versionNumber": 1,
+        "generatedText": "Clear, direct post...",
+        "approach": "direct",
+        "format": "opinion",
+        "usage": { "promptTokens": 200, "completionTokens": 150, "totalTokens": 350 }
+      },
+      {
+        "postId": "uuid2",
+        "versionId": "uuid2",
+        "versionNumber": 1,
+        "generatedText": "Last year, I learned...",
+        "approach": "storytelling",
+        "format": "opinion",
+        "usage": { "promptTokens": 210, "completionTokens": 180, "totalTokens": 390 }
+      },
+      {
+        "postId": "uuid3",
+        "versionId": "uuid3",
+        "versionNumber": 1,
+        "generatedText": "According to a 2024 study...",
+        "approach": "data-driven",
+        "format": "opinion",
+        "usage": { "promptTokens": 220, "completionTokens": 170, "totalTokens": 390 }
+      }
+    ],
+    "totalVariants": 3,
+    "context": {
+      "profile": { "id": "uuid", "name": "Professional Profile" },
+      "project": null,
+      "platform": null,
+      "historicalPostsUsed": 5
+    }
+  }
+}
+```
+
+**Variant Approaches:**
+
+| Approach | Temperature | Description | Best For |
+|----------|------------|-------------|----------|
+| `direct` | 0.5 | Straight to the point, clear and concise | Quick updates, announcements |
+| `storytelling` | 0.7 | Narrative-driven with personal touch | Sharing experiences, lessons learned |
+| `data-driven` | 0.6 | Fact-based with statistics and logic | Educational content, credibility building |
+| `emotional` | 0.8 | Empathetic and feeling-focused | Inspiring, motivational posts |
+
+Each variant is saved as a separate post with its own ID, allowing you to:
+
+- Compare different approaches side-by-side
+- Test which resonates best with your audience
+- Use different variants for different platforms
+- Track engagement per approach
+
+### Templates
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/templates` | Create a new template |
+| `GET` | `/api/templates` | List templates with filters |
+| `GET` | `/api/templates/:id` | Get template by ID |
+| `PUT` | `/api/templates/:id` | Update a template |
+| `DELETE` | `/api/templates/:id` | Delete a template |
+| `POST` | `/api/templates/:id/render` | Render a template with variables |
+| `POST` | `/api/templates/:id/duplicate` | Duplicate a template |
+| `GET` | `/api/templates/suggestions` | Get template suggestions |
+| `POST` | `/api/templates/find-similar` | Find similar templates |
+| `GET` | `/api/templates/statistics` | Get user's template statistics |
+| `POST` | `/api/generate/from-template` | Generate a post from a template |
+
+**Template Categories:**
+
+| Category | Description | Icon |
+|----------|-------------|------|
+| `announcement` | Product launches, company news, feature releases | 📢 |
+| `tutorial` | How-to guides, step-by-step instructions | 📚 |
+| `experience` | Personal stories, lessons learned, insights | 💭 |
+| `question` | Asking for opinions, starting discussions | ❓ |
+| `tip` | Quick tips, best practices, productivity hacks | 💡 |
+| `milestone` | Celebrating achievements, anniversaries, goals reached | 🎯 |
+| `behind-the-scenes` | Process insights, team culture, day-in-the-life | 🎬 |
+| `testimonial` | Customer success stories, social proof | ⭐ |
+| `poll` | Surveys, voting, gathering opinions | 📊 |
+| `event` | Webinars, conferences, meetups | 📅 |
+
+**Example: Create a template**
+```json
+POST /api/templates
+{
+  "name": "Product Announcement",
+  "description": "Template for announcing a new product",
+  "category": "announcement",
+  "content": "Excited to announce {{product_name}}! 🚀\n\n{{product_description}}\n\nKey features:\n- {{feature_1}}\n- {{feature_2}}\n- {{feature_3}}",
+  "variables": [
+    {
+      "name": "product_name",
+      "description": "Name of the product",
+      "required": true
+    },
+    {
+      "name": "product_description",
+      "description": "Brief description",
+      "required": true
+    },
+    {
+      "name": "feature_1",
+      "description": "First key feature",
+      "required": true
+    },
+    {
+      "name": "feature_2",
+      "description": "Second key feature",
+      "required": true
+    },
+    {
+      "name": "feature_3",
+      "description": "Third key feature",
+      "required": true
+    }
+  ],
+  "exampleVariables": {
+    "product_name": "QuickTask Pro",
+    "product_description": "A productivity tool for teams",
+    "feature_1": "AI-powered task prioritization",
+    "feature_2": "Real-time collaboration",
+    "feature_3": "Seamless integrations"
+  },
+  "tags": ["product", "launch"],
+  "isPublic": false
+}
+```
+
+**Example: Generate from template**
+```json
+POST /api/generate/from-template
+{
+  "templateId": "uuid-of-template",
+  "variables": {
+    "product_name": "My Awesome Product",
+    "product_description": "The best product ever",
+    "feature_1": "Feature one",
+    "feature_2": "Feature two",
+    "feature_3": "Feature three"
+  },
+  "profileId": "uuid-of-profile",
+  "platformId": "uuid-of-platform"
+}
+```
 
 ### Posts
 
@@ -640,10 +948,75 @@ All endpoints under `/api/` require JWT authentication except register and login
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/posts/:postId/iterate` | Create new iteration |
+| `POST` | `/api/posts/:postId/iterate` | Create new iteration (specialized or custom) |
 | `GET` | `/api/posts/:postId/versions` | List all versions |
 | `GET` | `/api/posts/:postId/versions/:versionId` | Get specific version |
 | `PATCH` | `/api/posts/:postId/versions/:versionId/select` | Select a version |
+
+**Specialized Iteration Types:**
+
+Brandium now supports **6 specialized iteration types** that allow you to quickly refine your posts without writing custom feedback:
+
+| Type | Description | Use When |
+|------|-------------|----------|
+| `shorter` | Condense the post while keeping the essence | Post is too long, needs to be more concise |
+| `stronger_hook` | Improve the opening 2-3 lines | Hook isn't grabbing attention |
+| `more_personal` | Add personal anecdote or story | Post feels too generic or impersonal |
+| `add_data` | Include statistics or concrete data | Post needs credibility boost |
+| `simplify` | Reduce complexity and jargon | Post is too technical or hard to read |
+| `custom` | Apply custom user feedback | Any other specific change |
+
+**Request body for `POST /api/posts/:postId/iterate`:**
+
+```json
+{
+  "type": "shorter",
+  "maxTokens": 2000
+}
+```
+
+Or for custom feedback:
+
+```json
+{
+  "type": "custom",
+  "feedback": "Add more technical details about the implementation",
+  "maxTokens": 2000
+}
+```
+
+> **Backwards Compatibility:** You can still use the legacy format with just `feedback` (no `type`), which defaults to `custom` type.
+
+**Example: Specialized Iteration Workflow**
+
+```bash
+# 1. Generate initial post
+curl -X POST http://localhost:5000/api/generate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rawIdea": "Just launched a new feature",
+    "goal": "Announce it to followers"
+  }'
+
+# 2. Make it shorter
+curl -X POST http://localhost:5000/api/posts/$POST_ID/iterate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "shorter"}'
+
+# 3. Improve the hook
+curl -X POST http://localhost:5000/api/posts/$POST_ID/iterate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "stronger_hook"}'
+
+# 4. Add data for credibility
+curl -X POST http://localhost:5000/api/posts/$POST_ID/iterate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "add_data"}'
+```
 
 ### Health Check
 

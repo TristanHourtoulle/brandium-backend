@@ -258,6 +258,63 @@ export const generateValidators = {
       .trim()
       .isLength({ min: 1 })
       .withMessage('rawIdea is required'),
+    body('variants')
+      .optional()
+      .isInt({ min: 1, max: 4 })
+      .withMessage('variants must be between 1 and 4'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  generateHooks: [
+    body('rawIdea')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 1000 })
+      .withMessage('rawIdea must be less than 1000 characters'),
+    body('postId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid post ID'),
+    body('goal')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('goal must be less than 500 characters'),
+    body('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('count')
+      .optional()
+      .isInt({ min: 1, max: 10 })
+      .withMessage('count must be between 1 and 10'),
+    body('variants')
+      .optional()
+      .isInt({ min: 1, max: 3 })
+      .withMessage('variants must be between 1 and 3'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  generateFromTemplate: [
+    body('templateId')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('variables')
+      .isObject()
+      .withMessage('Variables must be an object'),
+    body('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    body('goal')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('goal must be less than 500 characters'),
     validate,
   ] as (ValidationChain | typeof validate)[],
 };
@@ -643,6 +700,198 @@ export const commonValidators = {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+};
+
+// =====================================
+// Template Validators
+// =====================================
+export const templateValidators = {
+  create: [
+    body('name')
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Name is required and must be less than 255 characters'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be less than 1000 characters'),
+    body('category')
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category is required and must be less than 100 characters'),
+    body('content')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Content is required'),
+    body('variables')
+      .isArray()
+      .withMessage('Variables must be an array'),
+    body('variables.*.name')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Variable name is required'),
+    body('variables.*.description')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Variable description is required'),
+    body('variables.*.required')
+      .isBoolean()
+      .withMessage('Variable required must be a boolean'),
+    body('exampleVariables')
+      .optional()
+      .isObject()
+      .withMessage('Example variables must be an object'),
+    body('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    body('tags')
+      .optional()
+      .isArray()
+      .withMessage('Tags must be an array'),
+    body('isPublic')
+      .optional()
+      .isBoolean()
+      .withMessage('isPublic must be a boolean'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  update: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Name must be less than 255 characters'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be less than 1000 characters'),
+    body('category')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Category must be less than 100 characters'),
+    body('content')
+      .optional()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Content cannot be empty'),
+    body('variables')
+      .optional()
+      .isArray()
+      .withMessage('Variables must be an array'),
+    body('exampleVariables')
+      .optional()
+      .isObject()
+      .withMessage('Example variables must be an object'),
+    body('tags')
+      .optional()
+      .isArray()
+      .withMessage('Tags must be an array'),
+    body('isPublic')
+      .optional()
+      .isBoolean()
+      .withMessage('isPublic must be a boolean'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  getById: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  deleteTemplate: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  list: [
+    query('category')
+      .optional()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Category must not be empty'),
+    query('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    query('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    query('includeSystem')
+      .optional()
+      .isBoolean()
+      .withMessage('includeSystem must be a boolean'),
+    query('includePublic')
+      .optional()
+      .isBoolean()
+      .withMessage('includePublic must be a boolean'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  render: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('variables')
+      .isObject()
+      .withMessage('Variables must be an object'),
+    body('profileId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid profile ID'),
+    body('platformId')
+      .optional()
+      .isUUID()
+      .withMessage('Invalid platform ID'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  duplicate: [
+    param('id')
+      .isUUID()
+      .withMessage('Invalid template ID'),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('Name must be less than 255 characters'),
+    validate,
+  ] as (ValidationChain | typeof validate)[],
+
+  findSimilar: [
+    body('content')
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Content is required'),
+    body('limit')
+      .optional()
+      .isInt({ min: 1, max: 20 })
+      .withMessage('Limit must be between 1 and 20'),
     validate,
   ] as (ValidationChain | typeof validate)[],
 };

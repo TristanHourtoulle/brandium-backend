@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../../src/app';
-import { sequelize, User, Profile, Project, Platform, Post } from '../../src/models';
+import { sequelize, User, Profile, Project, Platform, Post, Template } from '../../src/models';
 import { llmService } from '../../src/services/LLMService';
 
 // Mock LLMService to avoid real API calls and token consumption
@@ -57,6 +57,7 @@ describe('Generate API Integration Tests', () => {
   beforeEach(async () => {
     // Clean up
     await Post.destroy({ where: {}, truncate: true, cascade: true });
+    await Template.destroy({ where: {}, truncate: true, cascade: true });
     await Profile.destroy({ where: {}, truncate: true, cascade: true });
     await Project.destroy({ where: {}, truncate: true, cascade: true });
     await Platform.destroy({ where: {}, truncate: true, cascade: true });
@@ -382,6 +383,388 @@ describe('Generate API Integration Tests', () => {
 
       const calledPrompt = mockGenerate.mock.calls[0][0].prompt;
       expect(calledPrompt).toContain('Drive engagement and signups');
+    });
+  });
+
+  // =====================================
+  // Generate from Template Tests
+  // =====================================
+  describe('Generate from Template', () => {
+    let testTemplate: Template;
+
+    beforeEach(async () => {
+      // Create a test template
+      testTemplate = await Template.create({
+        userId: testUser.id,
+        profileId: testProfile.id,
+        platformId: testPlatform.id,
+        name: 'Product Announcement Template',
+        description: 'Template for announcing products',
+        category: 'announcement',
+        content:
+          'Excited to announce {{product}}! 🚀\n\n{{description}}\n\nKey features:\n- {{feature1}}\n- {{feature2}}\n\n{{cta}}',
+        variables: [
+          { name: 'product', description: 'Product name', required: true },
+          { name: 'description', description: 'Product description', required: true },
+          { name: 'feature1', description: 'First feature', required: true },
+          { name: 'feature2', description: 'Second feature', required: false, defaultValue: 'More to come!' },
+          { name: 'cta', description: 'Call to action', required: false, defaultValue: 'Learn more!' },
+        ],
+        isSystem: false,
+        isPublic: false,
+        usageCount: 0,
+      });
+    });
+
+    it('should generate post from template with all variables', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'SuperApp',
+            description: 'The ultimate productivity tool for modern teams',
+            feature1: 'AI-powered automation',
+            feature2: 'Real-time collaboration',
+            cta: 'Try it free today!',
+          },
+          profileId: testProfile.id,
+          platformId: testPlatform.id,
+          goal: 'Drive signups',
+        })
+        .expect(201);
+
+      expect(res.body.message).toBe('Post generated from template successfully');
+      expect(res.body.data).toHaveProperty('postId');
+      expect(res.body.data).toHaveProperty('generatedText');
+      expect(res.body.data.template.id).toBe(testTemplate.id);
+      expect(res.body.data.template.name).toBe('Product Announcement Template');
+
+      // Verify LLM was called with rendered content
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining('SuperApp'),
+        }),
+      );
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining('AI-powered automation'),
+        }),
+      );
+
+      // Verify post saved to database
+      const savedPost = await Post.findByPk(res.body.data.postId);
+      expect(savedPost).not.toBeNull();
+      expect(savedPost?.rawIdea).toContain('SuperApp');
+    });
+
+    it('should use default values for optional variables', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'QuickTool',
+            description: 'A simple yet powerful tool',
+            feature1: 'Fast and lightweight',
+            // feature2 and cta omitted - should use defaults
+          },
+          profileId: testProfile.id,
+          platformId: testPlatform.id,
+        })
+        .expect(201);
+
+      expect(res.body.data.postId).toBeDefined();
+
+      // Verify template was incremented
+      await testTemplate.reload();
+      expect(testTemplate.usageCount).toBe(1);
+    });
+
+    it('should return error for missing required variables', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'MyApp',
+            // Missing required 'description' and 'feature1'
+          },
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('Missing Variables');
+      expect(res.body.missingVariables).toContain('description');
+      expect(res.body.missingVariables).toContain('feature1');
+
+      // Verify no post was created
+      const posts = await Post.findAll({ where: { userId: testUser.id } });
+      expect(posts).toHaveLength(0);
+    });
+
+    it('should work without optional context (profile, platform)', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'SimpleApp',
+            description: 'Simple description',
+            feature1: 'Feature one',
+          },
+          // No profileId or platformId
+        })
+        .expect(201);
+
+      expect(res.body.data.postId).toBeDefined();
+      expect(res.body.data.context.profile).toBeNull();
+      expect(res.body.data.context.platform).toBeNull();
+    });
+
+    it('should validate template exists', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: '00000000-0000-0000-0000-000000000000',
+          variables: {},
+        })
+        .expect(404);
+
+      expect(res.body.error).toBe('Not Found');
+    });
+
+    it('should validate profile exists if provided', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'App',
+            description: 'Desc',
+            feature1: 'Feature',
+          },
+          profileId: '00000000-0000-0000-0000-000000000000',
+        })
+        .expect(404);
+
+      expect(res.body.message).toBe('Profile not found');
+    });
+
+    it('should validate platform exists if provided', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'App',
+            description: 'Desc',
+            feature1: 'Feature',
+          },
+          platformId: '00000000-0000-0000-0000-000000000000',
+        })
+        .expect(404);
+
+      expect(res.body.message).toBe('Platform not found');
+    });
+
+    it('should enforce LinkedIn-only platform validation', async () => {
+      // Create X platform
+      const xPlatform = await Platform.create({
+        name: 'X',
+        styleGuidelines: 'Concise',
+        maxLength: 280,
+        userId: testUser.id,
+      });
+
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'App',
+            description: 'Desc',
+            feature1: 'Feature',
+          },
+          platformId: xPlatform.id,
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('Platform Not Supported');
+      expect(res.body.supportedPlatforms).toContain('LinkedIn');
+    });
+
+    it('should handle LLM errors gracefully', async () => {
+      mockGenerate.mockRejectedValueOnce(new Error('LLM Service unavailable'));
+
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'App',
+            description: 'Desc',
+            feature1: 'Feature',
+          },
+        })
+        .expect(500);
+
+      // Verify no post was created due to error
+      const posts = await Post.findAll({ where: { userId: testUser.id } });
+      expect(posts).toHaveLength(0);
+    });
+
+    it('should include template warnings in response', async () => {
+      // Create template with unused optional variable
+      const templateWithWarning = await Template.create({
+        userId: testUser.id,
+        name: 'Warning Template',
+        category: 'tip',
+        content: 'Using {{var1}}',
+        variables: [
+          { name: 'var1', description: 'Used variable', required: true },
+          { name: 'var2', description: 'Unused optional variable', required: false },
+        ],
+        isSystem: false,
+        isPublic: false,
+        usageCount: 0,
+      });
+
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: templateWithWarning.id,
+          variables: {
+            var1: 'Value',
+          },
+        })
+        .expect(201);
+
+      // Warnings should be included if template has unused optional variables
+      expect(res.body.data.warnings).toBeDefined();
+    });
+
+    it('should require authentication', async () => {
+      await request(app)
+        .post('/api/generate/from-template')
+        .send({
+          templateId: testTemplate.id,
+          variables: {},
+        })
+        .expect(401);
+    });
+
+    it('should validate templateId is UUID', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: 'not-a-uuid',
+          variables: {},
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('Validation Error');
+      expect(res.body.details).toBeDefined();
+    });
+
+    it('should validate variables is object', async () => {
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: 'not-an-object',
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('Validation Error');
+      expect(res.body.details).toBeDefined();
+    });
+
+    it('should allow user to access public templates from other users', async () => {
+      // Create another user
+      const otherUserRes = await request(app).post('/api/auth/register').send({
+        email: 'other@example.com',
+        password: 'Password123',
+      });
+      const otherUser = (await User.findOne({
+        where: { email: 'other@example.com' },
+      })) as User;
+
+      // Create public template from other user
+      const publicTemplate = await Template.create({
+        userId: otherUser.id,
+        name: 'Public Template',
+        category: 'tip',
+        content: '{{tip}}',
+        variables: [{ name: 'tip', description: 'The tip', required: true }],
+        isSystem: false,
+        isPublic: true,
+        usageCount: 0,
+      });
+
+      // First user should be able to generate from it
+      const res = await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: publicTemplate.id,
+          variables: {
+            tip: 'Always test your code',
+          },
+        })
+        .expect(201);
+
+      expect(res.body.data.template.name).toBe('Public Template');
+    });
+
+    it('should increment template usage count on successful generation', async () => {
+      const initialUsageCount = testTemplate.usageCount;
+
+      await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'MyApp',
+            description: 'Great app',
+            feature1: 'Feature one',
+          },
+        })
+        .expect(201);
+
+      await testTemplate.reload();
+      expect(testTemplate.usageCount).toBe(initialUsageCount + 1);
+    });
+
+    it('should NOT increment usage count when variables are missing', async () => {
+      const initialUsageCount = testTemplate.usageCount;
+
+      await request(app)
+        .post('/api/generate/from-template')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          templateId: testTemplate.id,
+          variables: {
+            product: 'MyApp',
+            // Missing required variables
+          },
+        })
+        .expect(400);
+
+      await testTemplate.reload();
+      expect(testTemplate.usageCount).toBe(initialUsageCount);
     });
   });
 });

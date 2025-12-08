@@ -1,5 +1,34 @@
 'use strict';
 
+/**
+ * Migration: Create Post Versions Table
+ *
+ * Implements version history and iteration tracking for generated posts.
+ * Each post can have multiple versions created through:
+ * - Initial generation
+ * - Specialized iterations (shorter, stronger_hook, more_personal, add_data, simplify, custom)
+ * - Variant generation (different approaches: direct, storytelling, data-driven, emotional)
+ *
+ * Key features:
+ * - Sequential version numbering per post (v1, v2, v3...)
+ * - Track iteration prompt used to create each version
+ * - Selected version flag (isSelected=true) for the user's preferred version
+ * - Token usage tracking for cost analysis and optimization
+ * - Support for specialized iteration types (see docs/ITERATION_TYPES.md)
+ * - Support for variant approaches (see docs/VARIANT_GENERATION.md)
+ *
+ * Constraints:
+ * - Unique (postId, versionNumber) ensures no duplicate version numbers
+ * - Cascade delete: deleting a post removes all its versions
+ *
+ * Indexes optimize:
+ * - Version history queries by post
+ * - Finding the selected version (isSelected=true)
+ *
+ * @see docs/ITERATION_TYPES.md for iteration documentation
+ * @see docs/VARIANT_GENERATION.md for variant generation documentation
+ */
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -17,38 +46,48 @@ module.exports = {
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
+        onDelete: 'CASCADE', // Delete all versions when post is deleted
       },
       versionNumber: {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 1,
+        // Sequential numbering: 1 (initial), 2 (first iteration), 3, 4...
       },
       generatedText: {
         type: Sequelize.TEXT,
         allowNull: false,
+        // The actual post content for this version
       },
       iterationPrompt: {
         type: Sequelize.TEXT,
         allowNull: true,
+        // NULL for initial generation, contains iteration instructions for subsequent versions
+        // Example: "Make this post more concise. Target: ~350 characters..."
         comment: 'Instructions used for this iteration (null for initial version)',
       },
       isSelected: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: false,
+        // Only ONE version per post should have isSelected=true
+        // Indicates the version user chose as their final content
       },
       promptTokens: {
         type: Sequelize.INTEGER,
         allowNull: true,
+        // Tokens used in the LLM prompt (context + instructions)
       },
       completionTokens: {
         type: Sequelize.INTEGER,
         allowNull: true,
+        // Tokens used in the LLM response (generated text)
       },
       totalTokens: {
         type: Sequelize.INTEGER,
         allowNull: true,
+        // Total tokens = promptTokens + completionTokens
+        // Used for cost tracking and analytics
       },
       createdAt: {
         allowNull: false,
